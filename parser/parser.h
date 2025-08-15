@@ -5,15 +5,28 @@
 #include "../ast/ast.h"
 #include "../lexer/lexer.h"
 
-// TODO: start from 2.4
 
 class Parser {
     public:
         Parser(Lexer& lexer);
+
+    private:
         int getNextToken();
+        int getTokPrecedence();
         std::unique_ptr<ExprAST> logError(const char *str);
         std::unique_ptr<PrototypeAST> logErrorP(const char *str);
-    private:
+        std::unique_ptr<ExprAST> parseNumberExpr();
+        std::unique_ptr<ExprAST> parseParenExpr();
+        std::unique_ptr<ExprAST> parseIdentifierExpr();
+        std::unique_ptr<ExprAST> parsePrimary();
+        std::unique_ptr<ExprAST> parseExpression();
+        std::unique_ptr<ExprAST> parseExpressionRest(int minPrecedence,
+                                                     std::unique_ptr<ExprAST> prev);
+        std::unique_ptr<PrototypeAST> parsePrototype();
+        std::unique_ptr<FunctionAST> parseDefinition();
+        std::unique_ptr<PrototypeAST> parseExtern();
+        std::unique_ptr<FunctionAST> parseTopLevelExpr();
+
         Lexer lexer;
         int curTok;
 };
