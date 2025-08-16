@@ -18,7 +18,7 @@ Parser::Parser(Lexer& lexer)
 
 void Parser::run() {
     while (true) {
-        fprintf(stderr, "ready> ");
+        fprintf(stderr, "kaleidoscope> ");
         switch (curTok) {
             case tok_eof:
                 return;

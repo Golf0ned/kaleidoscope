@@ -9,10 +9,10 @@
 class Parser {
     public:
         Parser(Lexer& lexer);
+        int getNextToken();
         void run();
 
     private:
-        int getNextToken();
         int getTokPrecedence();
         std::unique_ptr<ExprAST> logError(const char *str);
         std::unique_ptr<PrototypeAST> logErrorP(const char *str);
