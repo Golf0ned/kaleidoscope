@@ -105,7 +105,7 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() {
         else
             return nullptr;
 
-        if (curTok == '(')
+        if (curTok == ')')
             break;
 
         if (curTok != ',')
