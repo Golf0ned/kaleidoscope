@@ -5,6 +5,10 @@
 #include "lexer.h"
 
 
+Lexer::Lexer() {
+    lastChar = ' ';
+}
+
 std::string Lexer::getIdentifierValue() {
     return identifierStr;
 }
@@ -38,8 +42,6 @@ void Lexer::readComment() {
 }
 
 int Lexer::getTok() {
-    lastChar = ' ';
-
     while (isspace(lastChar)) {
         lastChar = getchar();
     }

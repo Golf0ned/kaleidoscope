@@ -20,6 +20,7 @@ enum Token {
 
 class Lexer {
     public:
+        Lexer();
         int getTok();
         std::string getIdentifierValue();
         double getNumericValue();
