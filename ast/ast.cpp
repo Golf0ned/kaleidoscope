@@ -12,7 +12,7 @@ BinaryExprAST::BinaryExprAST(char op, std::unique_ptr<ExprAST> left,
 
 CallExprAST::CallExprAST(const std::string& callee,
                          std::vector<std::unique_ptr<ExprAST>> args)
-    : callee(callee), args(args) {}
+    : callee(callee), args(std::move(args)) {}
 
 PrototypeAST::PrototypeAST(const std::string &name,
                            std::vector<std::string> args)
