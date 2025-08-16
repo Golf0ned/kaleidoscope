@@ -16,6 +16,37 @@ static std::unordered_map<char, int> binopPrecedence = {
 Parser::Parser(Lexer& lexer)
     : lexer(lexer) {}
 
+void Parser::run() {
+    while (true) {
+        fprintf(stderr, "ready> ");
+        switch (curTok) {
+            case tok_eof:
+                return;
+            case ';':
+                getNextToken();
+                break;
+            case tok_def:
+                if (parseDefinition())
+                    fprintf(stderr, "Parsed function\n");
+                else
+                    getNextToken();
+                break;
+            case tok_extern:
+                if (parseExtern())
+                    fprintf(stderr, "Parsed an extern\n");
+                else
+                    getNextToken();
+                break;
+            default:
+                if (parseTopLevelExpr())
+                    fprintf(stderr, "Parsed top level expr\n");
+                else
+                    getNextToken();
+                break;
+        }
+    }
+}
+
 int Parser::getNextToken() {
     return curTok = lexer.getTok();
 }

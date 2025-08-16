@@ -9,6 +9,7 @@
 class Parser {
     public:
         Parser(Lexer& lexer);
+        void run();
 
     private:
         int getNextToken();
