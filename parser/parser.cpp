@@ -26,21 +26,33 @@ void Parser::run() {
                 getNextToken();
                 break;
             case tok_def:
-                if (parseDefinition())
-                    fprintf(stderr, "Parsed function\n");
-                else
+                if (auto ast = parseDefinition()) {
+                    if (auto *ir = ast->codegen()) {
+                        fprintf(stderr, "Parsed function:\n");
+                        ir->print(llvm::errs());
+                        fprintf(stderr, "\n");
+                    }
+                } else
                     getNextToken();
                 break;
             case tok_extern:
-                if (parseExtern())
-                    fprintf(stderr, "Parsed an extern\n");
-                else
+                if (auto ast = parseExtern()) {
+                    if (auto *ir = ast->codegen()) {
+                        fprintf(stderr, "Parsed extern:\n");
+                        ir->print(llvm::errs());
+                        fprintf(stderr, "\n");
+                    }
+                } else
                     getNextToken();
                 break;
             default:
-                if (parseTopLevelExpr())
-                    fprintf(stderr, "Parsed top level expr\n");
-                else
+                if (auto ast = parseTopLevelExpr()) {
+                    if (auto *ir = ast->codegen()) {
+                        fprintf(stderr, "Parsed top level expr:\n");
+                        ir->print(llvm::errs());
+                        fprintf(stderr, "\n");
+                    }
+                } else
                     getNextToken();
                 break;
         }
