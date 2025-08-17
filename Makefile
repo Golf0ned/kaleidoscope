@@ -1,4 +1,6 @@
 BUILD_DIR := build
+C_COMPILER := clang
+CXX_COMPILER := clang++
 
 .PHONY: all build clean
 
@@ -6,7 +8,10 @@ all: build
 
 build:
 	mkdir -p $(BUILD_DIR)
-	cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -S . -B $(BUILD_DIR)
+	cmake \
+		-D CMAKE_CXX_COMPILER=$(CXX_COMPILER) \
+		-D CMAKE_C_COMPILER=$(C_COMPILER) \
+		-S . -B $(BUILD_DIR)
 	cmake --build $(BUILD_DIR)
 
 clean:
