@@ -11,4 +11,7 @@ int main() {
     parser.getNextToken();
 
     parser.run();
+
+    parser.dumpIR();
+    return 0;
 }
