@@ -5,7 +5,8 @@
 #include "lexer.h"
 
 
-Lexer::Lexer() {
+Lexer::Lexer(FILE* inStream)
+    : inStream(inStream) {
     lastChar = ' ';
 }
 
@@ -43,7 +44,7 @@ void Lexer::readComment() {
 
 int Lexer::getTok() {
     while (isspace(lastChar)) {
-        lastChar = getchar();
+        lastChar = getc(inStream);
     }
 
     if (isalpha(lastChar)) {

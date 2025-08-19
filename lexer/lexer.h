@@ -20,7 +20,7 @@ enum Token {
 
 class Lexer {
     public:
-        Lexer();
+        Lexer(FILE* inStream);
         int getTok();
         std::string getIdentifierValue();
         double getNumericValue();
@@ -30,6 +30,7 @@ class Lexer {
         void readNumeric();
         void readComment();
 
+        FILE* inStream;
         char lastChar;
         std::string identifierStr;
         double numVal;
