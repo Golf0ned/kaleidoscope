@@ -28,7 +28,7 @@ void Parser::run() {
             case tok_def:
                 if (auto ast = parseDefinition()) {
                     if (auto *ir = ast->codegen()) {
-                        fprintf(stderr, "Parsed function:\n");
+                        fprintf(stderr, "Read function:\n");
                         ir->print(llvm::errs());
                         fprintf(stderr, "\n");
                     }
@@ -38,7 +38,7 @@ void Parser::run() {
             case tok_extern:
                 if (auto ast = parseExtern()) {
                     if (auto *ir = ast->codegen()) {
-                        fprintf(stderr, "Parsed extern:\n");
+                        fprintf(stderr, "Read extern:\n");
                         ir->print(llvm::errs());
                         fprintf(stderr, "\n");
                     }
@@ -48,7 +48,7 @@ void Parser::run() {
             default:
                 if (auto ast = parseTopLevelExpr()) {
                     if (auto *ir = ast->codegen()) {
-                        fprintf(stderr, "Parsed top level expr:\n");
+                        fprintf(stderr, "Read top level expr:\n");
                         ir->print(llvm::errs());
                         fprintf(stderr, "\n");
                     }
