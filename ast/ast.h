@@ -23,6 +23,7 @@ llvm::Value *LogErrorV(const char *str);
 
 void initializeModule();
 void dumpIR();
+void writeToBitcode(const char *filename);
 
 class ExprAST {
     public:

@@ -4,6 +4,8 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 
+const std::string filename = "kaleidoscope.bc";
+
 int main() {
     Lexer lexer;
     Parser parser(lexer);
@@ -15,6 +17,7 @@ int main() {
 
     parser.run();
 
-    dumpIR();
+    // dumpIR();
+    writeToBitcode(filename.c_str());
     return 0;
 }

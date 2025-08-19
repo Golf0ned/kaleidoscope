@@ -1,6 +1,8 @@
+#include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include "ast.h"
 
@@ -18,6 +20,13 @@ void initializeModule() {
 
 void dumpIR() {
     Module->print(llvm::errs(), nullptr);
+}
+
+void writeToBitcode(const char *filename) {
+    std::error_code ec;
+    llvm::raw_fd_ostream os(filename, ec);
+    llvm::WriteBitcodeToFile(*Module.get(), os);
+    os.close();
 }
 
 NumberExprAST::NumberExprAST(double val) : val(val) {}
