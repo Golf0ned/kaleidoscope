@@ -11,7 +11,6 @@ class Parser {
         Parser(Lexer& lexer);
         int getNextToken();
         void run();
-        void dumpIR();
 
     private:
         int getTokPrecedence();

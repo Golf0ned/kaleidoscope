@@ -21,6 +21,9 @@ static std::map<std::string, llvm::Value *> NamedValues;
 
 llvm::Value *LogErrorV(const char *str);
 
+void initializeModule();
+void dumpIR();
+
 class ExprAST {
     public:
         virtual ~ExprAST() = default;

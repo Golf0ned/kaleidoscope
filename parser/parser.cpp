@@ -14,9 +14,7 @@ static std::unordered_map<char, int> binopPrecedence = {
 };
 
 Parser::Parser(Lexer& lexer)
-    : lexer(lexer) {
-    // TODO: AST module initialization
-}
+    : lexer(lexer) {}
 
 void Parser::run() {
     while (true) {
@@ -59,10 +57,6 @@ void Parser::run() {
                 break;
         }
     }
-}
-
-void Parser::dumpIR() {
-    // TODO: dump
 }
 
 int Parser::getNextToken() {

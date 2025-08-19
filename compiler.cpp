@@ -1,5 +1,6 @@
 #include <cstdio>
 
+#include "ast/ast.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 
@@ -10,8 +11,10 @@ int main() {
     fprintf(stderr, "kaleidoscope> ");
     parser.getNextToken();
 
+    initializeModule();
+
     parser.run();
 
-    parser.dumpIR();
+    dumpIR();
     return 0;
 }
