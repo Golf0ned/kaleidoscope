@@ -59,6 +59,36 @@ void Parser::run() {
     }
 }
 
+void Parser::parseStream() {
+    while (true) {
+        switch (curTok) {
+            case tok_eof:
+                return;
+            case ';':
+                getNextToken();
+                break;
+            case tok_def:
+                if (auto ast = parseDefinition()) {
+                    ast->codegen();
+                } else
+                    getNextToken();
+                break;
+            case tok_extern:
+                if (auto ast = parseExtern()) {
+                    ast->codegen();
+                } else
+                    getNextToken();
+                break;
+            default:
+                if (auto ast = parseTopLevelExpr()) {
+                    ast->codegen();
+                } else
+                    getNextToken();
+                break;
+        }
+    }
+}
+
 int Parser::getNextToken() {
     return curTok = lexer.getTok();
 }

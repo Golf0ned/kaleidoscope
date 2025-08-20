@@ -21,18 +21,23 @@ void runInteractive() {
 }
 
 void runFileInput(char *inFileName) {
-
     initializeModule();
 
-    // TODO: open file
-    // auto inFile = ...
+    auto *inFile = fopen(inFileName, "r");
+    if (!inFile)
+        fprintf(stderr, "Error: file open failed");
 
-    Lexer lexer(/* file */);
+    // int c;
+    // while ((c = getc(inFile)) != EOF)
+    //     putchar(c);
+
+    Lexer lexer(inFile);
     Parser parser(lexer);
+    parser.getNextToken();
 
-    // TODO: parse file stream
-    // parser.parseStream();
+    parser.parseStream();
 
+    fclose(inFile);
     writeToBitcode(outFileName.c_str());
 }
 

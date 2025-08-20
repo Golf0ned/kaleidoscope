@@ -20,7 +20,7 @@ double Lexer::getNumericValue() {
 
 void Lexer::readIdentifierOrKeyword() {
     identifierStr = lastChar;
-    while (isalnum((lastChar = getchar()))) {
+    while (isalnum((lastChar = getc(inStream)))) {
         identifierStr += lastChar;
     }
 }
@@ -30,7 +30,7 @@ void Lexer::readNumeric() {
 
     do {
         buffer += lastChar;
-        lastChar = getchar();
+        lastChar = getc(inStream);
     } while (isdigit(lastChar) || lastChar == '.');
 
     numVal = std::strtod(buffer.c_str(), nullptr);
@@ -38,7 +38,7 @@ void Lexer::readNumeric() {
 
 void Lexer::readComment() {
     do {
-        lastChar = getchar();
+        lastChar = getc(inStream);
     } while (lastChar != EOF && lastChar != '\n' && lastChar != '\r');
 }
 
@@ -69,6 +69,6 @@ int Lexer::getTok() {
     }
 
     int curChar = lastChar;
-    lastChar = getchar();
+    lastChar = getc(inStream);
     return curChar;
 }
