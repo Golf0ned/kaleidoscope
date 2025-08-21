@@ -140,6 +140,7 @@ llvm::Function *FunctionAST::codegen() {
     if (llvm::Value *retVal = body->codegen()) {
         Builder->CreateRet(retVal);
         llvm::verifyFunction(*f);
+        FPM->run(*f, *FAM);
         return f;
     }
 
