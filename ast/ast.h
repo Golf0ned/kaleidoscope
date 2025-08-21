@@ -14,16 +14,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
 
-static std::unique_ptr<llvm::LLVMContext> Context;
-static std::unique_ptr<llvm::IRBuilder<>> Builder;
-static std::unique_ptr<llvm::Module> Module;
-static std::map<std::string, llvm::Value *> NamedValues;
-
 llvm::Value *LogErrorV(const char *str);
-
-void initializeModule();
-void dumpIR();
-void writeToBitcode(const char *filename);
 
 class ExprAST {
     public:

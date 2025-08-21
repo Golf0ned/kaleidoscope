@@ -9,6 +9,7 @@ set(SOURCES
     compiler.cpp
     ast/ast.cpp
     lexer/lexer.cpp
+    llvm/llvm.cpp
     parser/parser.cpp
 )
 
