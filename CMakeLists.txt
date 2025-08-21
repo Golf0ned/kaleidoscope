@@ -6,11 +6,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Sources
 set(SOURCES
-    compiler.cpp
-    ast/ast.cpp
-    lexer/lexer.cpp
-    llvm/llvm.cpp
-    parser/parser.cpp
+    src/compiler.cpp
+    src/ast.cpp
+    src/lexer.cpp
+    src/llvm.cpp
+    src/parser.cpp
 )
 
 add_executable(kaleidoscope ${SOURCES})

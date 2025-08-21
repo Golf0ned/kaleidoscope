@@ -1,8 +1,8 @@
 #include <cstdio>
 
-#include "lexer/lexer.h"
-#include "llvm/llvm.h"
-#include "parser/parser.h"
+#include "lexer.h"
+#include "llvm.h"
+#include "parser.h"
 
 const std::string outFileName = "kaleidoscope.bc";
 

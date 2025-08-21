@@ -2,7 +2,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "../lexer/lexer.h"
+#include "lexer.h"
 #include "parser.h"
 
 

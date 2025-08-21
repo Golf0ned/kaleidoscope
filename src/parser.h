@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "../ast/ast.h"
-#include "../lexer/lexer.h"
+#include "ast.h"
+#include "lexer.h"
 
 
 class Parser {

@@ -3,7 +3,7 @@
 #include "llvm/IR/LLVMContext.h"
 
 #include "ast.h"
-#include "../llvm/llvm.h"
+#include "llvm.h"
 
 
 llvm::Value *LogErrorV(const char *str) {
