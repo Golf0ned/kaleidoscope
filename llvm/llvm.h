@@ -20,13 +20,13 @@ extern std::unique_ptr<llvm::IRBuilder<>> Builder;
 extern std::unique_ptr<llvm::Module> Module;
 extern std::map<std::string, llvm::Value *> NamedValues;
 
-extern std::unique_ptr<llvm::FunctionPassManager> FPM;
-extern std::unique_ptr<llvm::LoopAnalysisManager> LAM;
-extern std::unique_ptr<llvm::FunctionAnalysisManager> FAM;
-extern std::unique_ptr<llvm::CGSCCAnalysisManager> CGAM;
-extern std::unique_ptr<llvm::ModuleAnalysisManager> MAM;
-extern std::unique_ptr<llvm::PassInstrumentationCallbacks> PIC;
-extern std::unique_ptr<llvm::StandardInstrumentations> SI;
+extern std::unique_ptr<llvm::FunctionPassManager> fpm;
+extern std::unique_ptr<llvm::LoopAnalysisManager> lam;
+extern std::unique_ptr<llvm::FunctionAnalysisManager> fam;
+extern std::unique_ptr<llvm::CGSCCAnalysisManager> cgam;
+extern std::unique_ptr<llvm::ModuleAnalysisManager> mam;
+extern std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
+extern std::unique_ptr<llvm::StandardInstrumentations> si;
 
 void initializeModule();
 void dumpIR();

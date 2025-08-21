@@ -130,8 +130,8 @@ llvm::Function *FunctionAST::codegen() {
     for (unsigned i = 0; i != proto->getArgs().size(); ++i, ++argIter)
         argIter->setName(proto->getArgs()[i]);
 
-    llvm::BasicBlock *BB = llvm::BasicBlock::Create(*Context, "entry", f);
-    Builder->SetInsertPoint(BB);
+    llvm::BasicBlock *bb = llvm::BasicBlock::Create(*Context, "entry", f);
+    Builder->SetInsertPoint(bb);
 
     NamedValues.clear();
     for (auto &arg : f->args())
@@ -140,7 +140,7 @@ llvm::Function *FunctionAST::codegen() {
     if (llvm::Value *retVal = body->codegen()) {
         Builder->CreateRet(retVal);
         llvm::verifyFunction(*f);
-        FPM->run(*f, *FAM);
+        fpm->run(*f, *fam);
         return f;
     }
 

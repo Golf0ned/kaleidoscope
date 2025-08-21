@@ -12,13 +12,13 @@ std::unique_ptr<llvm::LLVMContext> Context;
 std::unique_ptr<llvm::IRBuilder<>> Builder;
 std::unique_ptr<llvm::Module> Module;
 std::map<std::string, llvm::Value *> NamedValues;
-std::unique_ptr<llvm::FunctionPassManager> FPM;
-std::unique_ptr<llvm::LoopAnalysisManager> LAM;
-std::unique_ptr<llvm::FunctionAnalysisManager> FAM;
-std::unique_ptr<llvm::CGSCCAnalysisManager> CGAM;
-std::unique_ptr<llvm::ModuleAnalysisManager> MAM;
-std::unique_ptr<llvm::PassInstrumentationCallbacks> PIC;
-std::unique_ptr<llvm::StandardInstrumentations> SI;
+std::unique_ptr<llvm::FunctionPassManager> fpm;
+std::unique_ptr<llvm::LoopAnalysisManager> lam;
+std::unique_ptr<llvm::FunctionAnalysisManager> fam;
+std::unique_ptr<llvm::CGSCCAnalysisManager> cgam;
+std::unique_ptr<llvm::ModuleAnalysisManager> mam;
+std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
+std::unique_ptr<llvm::StandardInstrumentations> si;
 
 void initializeModule() {
     Context = std::make_unique<llvm::LLVMContext>();
@@ -27,23 +27,23 @@ void initializeModule() {
 
     Builder = std::make_unique<llvm::IRBuilder<>>(*Context);
 
-    FPM = std::make_unique<llvm::FunctionPassManager>();
-    LAM = std::make_unique<llvm::LoopAnalysisManager>();
-    FAM = std::make_unique<llvm::FunctionAnalysisManager>();
-    CGAM = std::make_unique<llvm::CGSCCAnalysisManager>();
-    MAM = std::make_unique<llvm::ModuleAnalysisManager>();
-    PIC = std::make_unique<llvm::PassInstrumentationCallbacks>();
-    SI = std::make_unique<llvm::StandardInstrumentations>(*Context, true);
+    fpm = std::make_unique<llvm::FunctionPassManager>();
+    lam = std::make_unique<llvm::LoopAnalysisManager>();
+    fam = std::make_unique<llvm::FunctionAnalysisManager>();
+    cgam = std::make_unique<llvm::CGSCCAnalysisManager>();
+    mam = std::make_unique<llvm::ModuleAnalysisManager>();
+    pic = std::make_unique<llvm::PassInstrumentationCallbacks>();
+    si = std::make_unique<llvm::StandardInstrumentations>(*Context, true);
 
-    FPM->addPass(llvm::InstCombinePass());
-    FPM->addPass(llvm::ReassociatePass());
-    FPM->addPass(llvm::GVNPass());
-    FPM->addPass(llvm::SimplifyCFGPass());
+    fpm->addPass(llvm::InstCombinePass());
+    fpm->addPass(llvm::ReassociatePass());
+    fpm->addPass(llvm::GVNPass());
+    fpm->addPass(llvm::SimplifyCFGPass());
 
     llvm::PassBuilder pb;
-    pb.registerModuleAnalyses(*MAM);
-    pb.registerFunctionAnalyses(*FAM);
-    pb.crossRegisterProxies(*LAM, *FAM, *CGAM, *MAM);
+    pb.registerModuleAnalyses(*mam);
+    pb.registerFunctionAnalyses(*fam);
+    pb.crossRegisterProxies(*lam, *fam, *cgam, *mam);
 }
 
 void dumpIR() {
