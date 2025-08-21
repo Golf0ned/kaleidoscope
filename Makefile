@@ -25,3 +25,5 @@ debug:
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm kaleidoscope.bc
+	rm kaleidoscope.ll
