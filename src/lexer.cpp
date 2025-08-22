@@ -4,19 +4,11 @@
 
 #include "lexer.h"
 
+Lexer::Lexer(FILE *inStream) : inStream(inStream) { lastChar = ' '; }
 
-Lexer::Lexer(FILE* inStream)
-    : inStream(inStream) {
-    lastChar = ' ';
-}
+std::string Lexer::getIdentifierValue() { return identifierStr; }
 
-std::string Lexer::getIdentifierValue() {
-    return identifierStr;
-}
-
-double Lexer::getNumericValue() {
-    return numVal;
-}
+double Lexer::getNumericValue() { return numVal; }
 
 void Lexer::readIdentifierOrKeyword() {
     identifierStr = lastChar;
@@ -49,19 +41,22 @@ int Lexer::getTok() {
 
     if (isalpha(lastChar)) {
         readIdentifierOrKeyword();
-        if (identifierStr == "def") return tok_def;
-        if (identifierStr == "extern") return tok_extern;
+        if (identifierStr == "def")
+            return tok_def;
+        if (identifierStr == "extern")
+            return tok_extern;
         return tok_identifier;
     }
 
     if (isdigit(lastChar) || lastChar == '.') {
-        readNumeric();   
+        readNumeric();
         return tok_number;
     }
 
     if (lastChar == '#') {
         readComment();
-        if (lastChar != EOF) return getTok();
+        if (lastChar != EOF)
+            return getTok();
     }
 
     if (lastChar == EOF) {

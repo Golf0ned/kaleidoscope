@@ -2,7 +2,6 @@
 
 #include <string>
 
-
 enum Token {
     // Default: ASCII value
 
@@ -20,7 +19,7 @@ enum Token {
 
 class Lexer {
     public:
-        Lexer(FILE* inStream);
+        Lexer(FILE *inStream);
         int getTok();
         std::string getIdentifierValue();
         double getNumericValue();
@@ -30,7 +29,7 @@ class Lexer {
         void readNumeric();
         void readComment();
 
-        FILE* inStream;
+        FILE *inStream;
         char lastChar;
         std::string identifierStr;
         double numVal;

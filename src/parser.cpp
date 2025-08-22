@@ -5,7 +5,6 @@
 #include "lexer.h"
 #include "parser.h"
 
-
 static std::unordered_map<char, int> binopPrecedence = {
     {'*', 40},
     {'+', 20},
@@ -13,8 +12,7 @@ static std::unordered_map<char, int> binopPrecedence = {
     {'<', 10},
 };
 
-Parser::Parser(Lexer& lexer)
-    : lexer(lexer) {}
+Parser::Parser(Lexer &lexer) : lexer(lexer) {}
 
 void Parser::run() {
     while (true) {
@@ -89,9 +87,7 @@ void Parser::parseStream() {
     }
 }
 
-int Parser::getNextToken() {
-    return curTok = lexer.getTok();
-}
+int Parser::getNextToken() { return curTok = lexer.getTok(); }
 
 int Parser::getTokPrecedence() {
     if (!isascii(curTok))
@@ -124,11 +120,11 @@ std::unique_ptr<ExprAST> Parser::parseParenExpr() {
     auto v = parseExpression();
     if (!v)
         return nullptr;
-    
+
     if (curTok != ')')
         return logError("expected ')'");
     getNextToken();
-    return v; 
+    return v;
 }
 
 std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() {
@@ -161,7 +157,7 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() {
 }
 
 std::unique_ptr<ExprAST> Parser::parsePrimary() {
-    switch(curTok) {
+    switch (curTok) {
         default:
             return logError("unknown token when expecting an expression");
         case tok_identifier:
@@ -181,8 +177,8 @@ std::unique_ptr<ExprAST> Parser::parseExpression() {
     return parseExpressionRest(0, std::move(first));
 }
 
-std::unique_ptr<ExprAST> Parser::parseExpressionRest(int minPrecedence,
-                                                     std::unique_ptr<ExprAST> prev) {
+std::unique_ptr<ExprAST>
+Parser::parseExpressionRest(int minPrecedence, std::unique_ptr<ExprAST> prev) {
     while (true) {
         int curPrecedence = getTokPrecedence();
         if (curPrecedence < minPrecedence)
@@ -197,13 +193,12 @@ std::unique_ptr<ExprAST> Parser::parseExpressionRest(int minPrecedence,
 
         int nextPrecedence = getTokPrecedence();
         if (curPrecedence < nextPrecedence) {
-            next = parseExpressionRest(curPrecedence + 1,
-                                       std::move(next));
+            next = parseExpressionRest(curPrecedence + 1, std::move(next));
             if (!next)
                 return nullptr;
         }
         prev = std::make_unique<BinaryExprAST>(binOp, std::move(prev),
-                                                      std::move(next));
+                                               std::move(next));
     }
 }
 
@@ -220,7 +215,7 @@ std::unique_ptr<PrototypeAST> Parser::parsePrototype() {
     std::vector<std::string> argNames;
     while (getNextToken() == tok_identifier)
         argNames.push_back(lexer.getIdentifierValue());
-    
+
     if (curTok != ')')
         return logErrorP("Expected ')' in prototype");
     getNextToken();
@@ -235,7 +230,8 @@ std::unique_ptr<FunctionAST> Parser::parseDefinition() {
         return nullptr;
 
     if (auto expression = parseExpression())
-        return std::make_unique<FunctionAST>(std::move(prototype), std::move(expression));
+        return std::make_unique<FunctionAST>(std::move(prototype),
+                                             std::move(expression));
     return nullptr;
 }
 
@@ -246,8 +242,10 @@ std::unique_ptr<PrototypeAST> Parser::parseExtern() {
 
 std::unique_ptr<FunctionAST> Parser::parseTopLevelExpr() {
     if (auto expression = parseExpression()) {
-        auto prototype = std::make_unique<PrototypeAST>("", std::vector<std::string>());
-        return std::make_unique<FunctionAST>(std::move(prototype), std::move(expression));
+        auto prototype =
+            std::make_unique<PrototypeAST>("", std::vector<std::string>());
+        return std::make_unique<FunctionAST>(std::move(prototype),
+                                             std::move(expression));
     }
     return nullptr;
 }

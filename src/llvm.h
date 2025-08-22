@@ -31,4 +31,3 @@ extern std::unique_ptr<llvm::StandardInstrumentations> si;
 void initializeModule();
 void dumpIR();
 void writeToBitcode(const char *filename);
-

@@ -5,10 +5,9 @@
 #include "ast.h"
 #include "lexer.h"
 
-
 class Parser {
     public:
-        Parser(Lexer& lexer);
+        Parser(Lexer &lexer);
         int getNextToken();
         void run();
         void parseStream();
@@ -22,8 +21,8 @@ class Parser {
         std::unique_ptr<ExprAST> parseIdentifierExpr();
         std::unique_ptr<ExprAST> parsePrimary();
         std::unique_ptr<ExprAST> parseExpression();
-        std::unique_ptr<ExprAST> parseExpressionRest(int minPrecedence,
-                                                     std::unique_ptr<ExprAST> prev);
+        std::unique_ptr<ExprAST>
+        parseExpressionRest(int minPrecedence, std::unique_ptr<ExprAST> prev);
         std::unique_ptr<PrototypeAST> parsePrototype();
         std::unique_ptr<FunctionAST> parseDefinition();
         std::unique_ptr<PrototypeAST> parseExtern();

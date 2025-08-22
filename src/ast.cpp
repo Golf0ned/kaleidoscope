@@ -1,10 +1,9 @@
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/IR/LLVMContext.h"
 
 #include "ast.h"
 #include "llvm.h"
-
 
 llvm::Value *LogErrorV(const char *str) {
     fprintf(stderr, "Error: %s\n", str);
@@ -17,8 +16,7 @@ llvm::Value *NumberExprAST::codegen() {
     return llvm::ConstantFP::get(*Context, llvm::APFloat(val));
 }
 
-VariableExprAST::VariableExprAST(const std::string &name)
-    : name(name) {}
+VariableExprAST::VariableExprAST(const std::string &name) : name(name) {}
 
 llvm::Value *VariableExprAST::codegen() {
     llvm::Value *v = NamedValues[name];
@@ -53,7 +51,7 @@ llvm::Value *BinaryExprAST::codegen() {
     }
 }
 
-CallExprAST::CallExprAST(const std::string& callee,
+CallExprAST::CallExprAST(const std::string &callee,
                          std::vector<std::unique_ptr<ExprAST>> args)
     : callee(callee), args(std::move(args)) {}
 
@@ -79,26 +77,18 @@ PrototypeAST::PrototypeAST(const std::string &name,
                            std::vector<std::string> args)
     : name(name), args(args) {}
 
-const std::string &PrototypeAST::getName() const {
-    return name;
-}
+const std::string &PrototypeAST::getName() const { return name; }
 
-const std::vector<std::string> &PrototypeAST::getArgs() {
-    return args;
-}
+const std::vector<std::string> &PrototypeAST::getArgs() { return args; }
 
 llvm::Function *PrototypeAST::codegen() {
-    std::vector<llvm::Type*> doubles(args.size(),
-                               llvm::Type::getDoubleTy(*Context));
-    llvm::FunctionType *ft =
-        llvm::FunctionType::get(llvm::Type::getDoubleTy(*Context),
-                                doubles,
-                                false);
+    std::vector<llvm::Type *> doubles(args.size(),
+                                      llvm::Type::getDoubleTy(*Context));
+    llvm::FunctionType *ft = llvm::FunctionType::get(
+        llvm::Type::getDoubleTy(*Context), doubles, false);
 
-    llvm::Function *f = llvm::Function::Create(ft,
-                                               llvm::Function::ExternalLinkage,
-                                               name,
-                                               Module.get());
+    llvm::Function *f = llvm::Function::Create(
+        ft, llvm::Function::ExternalLinkage, name, Module.get());
 
     unsigned i = 0;
     for (auto &arg : f->args())
@@ -121,10 +111,11 @@ llvm::Function *FunctionAST::codegen() {
         return nullptr;
 
     if (f->arg_size() != proto->getArgs().size())
-        return (llvm::Function*)LogErrorV("function cannot be redefined with different # args");
+        return (llvm::Function *)LogErrorV(
+            "function cannot be redefined with different # args");
 
     if (!f->empty())
-        return (llvm::Function*)LogErrorV("function cannot be redefined");
+        return (llvm::Function *)LogErrorV("function cannot be redefined");
 
     auto argIter = f->arg_begin();
     for (unsigned i = 0; i != proto->getArgs().size(); ++i, ++argIter)

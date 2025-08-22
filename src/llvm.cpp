@@ -2,11 +2,11 @@
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar/Reassociate.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
-#include "llvm/Support/raw_ostream.h"
 
 std::unique_ptr<llvm::LLVMContext> Context;
 std::unique_ptr<llvm::IRBuilder<>> Builder;
@@ -46,9 +46,7 @@ void initializeModule() {
     pb.crossRegisterProxies(*lam, *fam, *cgam, *mam);
 }
 
-void dumpIR() {
-    Module->print(llvm::errs(), nullptr);
-}
+void dumpIR() { Module->print(llvm::errs(), nullptr); }
 
 void writeToBitcode(const char *filename) {
     std::error_code ec;
@@ -56,4 +54,3 @@ void writeToBitcode(const char *filename) {
     llvm::WriteBitcodeToFile(*Module.get(), os);
     os.close();
 }
-

@@ -26,7 +26,7 @@ class NumberExprAST : public ExprAST {
     public:
         NumberExprAST(double val);
         llvm::Value *codegen() override;
-    
+
     private:
         double val;
 };
@@ -35,7 +35,7 @@ class VariableExprAST : public ExprAST {
     public:
         VariableExprAST(const std::string &name);
         llvm::Value *codegen() override;
-    
+
     private:
         std::string name;
 };
@@ -45,7 +45,7 @@ class BinaryExprAST : public ExprAST {
         BinaryExprAST(char op, std::unique_ptr<ExprAST> left,
                       std::unique_ptr<ExprAST> right);
         llvm::Value *codegen() override;
-    
+
     private:
         char op;
         std::unique_ptr<ExprAST> left, right;
@@ -53,10 +53,10 @@ class BinaryExprAST : public ExprAST {
 
 class CallExprAST : public ExprAST {
     public:
-        CallExprAST(const std::string& callee,
+        CallExprAST(const std::string &callee,
                     std::vector<std::unique_ptr<ExprAST>> args);
         llvm::Value *codegen() override;
-    
+
     private:
         std::string callee;
         std::vector<std::unique_ptr<ExprAST>> args;
@@ -64,10 +64,9 @@ class CallExprAST : public ExprAST {
 
 class PrototypeAST {
     public:
-        PrototypeAST(const std::string &name,
-                     std::vector<std::string> args);
+        PrototypeAST(const std::string &name, std::vector<std::string> args);
         const std::string &getName() const;
-        const std::vector<std::string>& getArgs();
+        const std::vector<std::string> &getArgs();
         llvm::Function *codegen();
 
     private:
@@ -85,4 +84,3 @@ class FunctionAST {
         std::unique_ptr<PrototypeAST> proto;
         std::unique_ptr<ExprAST> body;
 };
-
