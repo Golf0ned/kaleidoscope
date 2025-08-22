@@ -14,7 +14,7 @@ void runInteractive() {
     parser.getNextToken();
 
     initializeModule();
-
+    initializeJIT();
     parser.run();
 
     dumpIR();
@@ -26,10 +26,6 @@ void runFileInput(char *inFileName) {
     auto *inFile = fopen(inFileName, "r");
     if (!inFile)
         fprintf(stderr, "Error: file open failed");
-
-    // int c;
-    // while ((c = getc(inFile)) != EOF)
-    //     putchar(c);
 
     Lexer lexer(inFile);
     Parser parser(lexer);

@@ -56,7 +56,7 @@ CallExprAST::CallExprAST(const std::string &callee,
     : callee(callee), args(std::move(args)) {}
 
 llvm::Value *CallExprAST::codegen() {
-    llvm::Function *calleeF = Module->getFunction(callee);
+    llvm::Function *calleeF = getFunction(callee);
     if (!calleeF)
         return LogErrorV("unknown function referenced");
 
@@ -102,15 +102,14 @@ FunctionAST::FunctionAST(std::unique_ptr<PrototypeAST> proto,
     : proto(std::move(proto)), body(std::move(body)) {}
 
 llvm::Function *FunctionAST::codegen() {
-    llvm::Function *f = Module->getFunction(proto->getName());
-
-    if (!f)
-        f = proto->codegen();
-
+    auto &p = *proto;
+    functionProtos[proto->getName()] = std::move(proto);
+    llvm::Function *f = getFunction(p.getName());
     if (!f)
         return nullptr;
 
-    if (f->arg_size() != proto->getArgs().size())
+    auto newArgs = p.getArgs();
+    if (f->arg_size() != newArgs.size())
         return (llvm::Function *)LogErrorV(
             "function cannot be redefined with different # args");
 
@@ -118,8 +117,8 @@ llvm::Function *FunctionAST::codegen() {
         return (llvm::Function *)LogErrorV("function cannot be redefined");
 
     auto argIter = f->arg_begin();
-    for (unsigned i = 0; i != proto->getArgs().size(); ++i, ++argIter)
-        argIter->setName(proto->getArgs()[i]);
+    for (unsigned i = 0; i != newArgs.size(); ++i, ++argIter)
+        argIter->setName(newArgs[i]);
 
     llvm::BasicBlock *bb = llvm::BasicBlock::Create(*Context, "entry", f);
     Builder->SetInsertPoint(bb);

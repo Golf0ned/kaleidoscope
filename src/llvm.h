@@ -15,6 +15,10 @@
 #include "llvm/Transforms/Scalar/Reassociate.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 
+#include "kaleidoscopeJIT.h"
+
+#include "ast.h"
+
 extern std::unique_ptr<llvm::LLVMContext> Context;
 extern std::unique_ptr<llvm::IRBuilder<>> Builder;
 extern std::unique_ptr<llvm::Module> Module;
@@ -28,6 +32,14 @@ extern std::unique_ptr<llvm::ModuleAnalysisManager> mam;
 extern std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
 extern std::unique_ptr<llvm::StandardInstrumentations> si;
 
+extern std::unique_ptr<llvm::orc::KaleidoscopeJIT> jit;
+extern llvm::ExitOnError exitOnErr;
+extern std::map<std::string, std::unique_ptr<PrototypeAST>> functionProtos;
+
 void initializeModule();
+void initializeJIT();
+
+llvm::Function *getFunction(std::string name);
+
 void dumpIR();
 void writeToBitcode(const char *filename);

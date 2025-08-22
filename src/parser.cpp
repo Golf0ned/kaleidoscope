@@ -1,8 +1,10 @@
 #include <cstdio>
+#include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <memory>
 #include <unordered_map>
 
 #include "lexer.h"
+#include "llvm.h"
 #include "parser.h"
 
 static std::unordered_map<char, int> binopPrecedence = {
@@ -29,6 +31,10 @@ void Parser::run() {
                         fprintf(stderr, "Read function:\n");
                         ir->print(llvm::errs());
                         fprintf(stderr, "\n");
+
+                        exitOnErr(jit->addModule(llvm::orc::ThreadSafeModule(
+                            std::move(Module), std::move(Context))));
+                        initializeModule();
                     }
                 } else
                     getNextToken();
@@ -39,6 +45,8 @@ void Parser::run() {
                         fprintf(stderr, "Read extern:\n");
                         ir->print(llvm::errs());
                         fprintf(stderr, "\n");
+
+                        functionProtos[ast->getName()] = std::move(ast);
                     }
                 } else
                     getNextToken();
@@ -46,9 +54,24 @@ void Parser::run() {
             default:
                 if (auto ast = parseTopLevelExpr()) {
                     if (auto *ir = ast->codegen()) {
-                        fprintf(stderr, "Read top level expr:\n");
+                        fprintf(stderr, "Read top-level expr:\n");
                         ir->print(llvm::errs());
                         fprintf(stderr, "\n");
+
+                        auto rt =
+                            jit->getMainJITDylib().createResourceTracker();
+                        auto tsm = llvm::orc::ThreadSafeModule(
+                            std::move(Module), std::move(Context));
+                        exitOnErr(jit->addModule(std::move(tsm), rt));
+                        initializeModule();
+
+                        auto exprSymbol = exitOnErr(jit->lookup("__anon_expr"));
+
+                        double (*fp)() =
+                            exprSymbol.getAddress().toPtr<double (*)()>();
+                        fprintf(stderr, "Evaluated to %f\n", fp());
+
+                        exitOnErr(rt->remove());
                     }
                 } else
                     getNextToken();
@@ -242,8 +265,8 @@ std::unique_ptr<PrototypeAST> Parser::parseExtern() {
 
 std::unique_ptr<FunctionAST> Parser::parseTopLevelExpr() {
     if (auto expression = parseExpression()) {
-        auto prototype =
-            std::make_unique<PrototypeAST>("", std::vector<std::string>());
+        auto prototype = std::make_unique<PrototypeAST>(
+            "__anon_expr", std::vector<std::string>());
         return std::make_unique<FunctionAST>(std::move(prototype),
                                              std::move(expression));
     }

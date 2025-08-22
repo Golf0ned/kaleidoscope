@@ -1,12 +1,17 @@
 #include "llvm.h"
+#include "ast.h"
+#include "kaleidoscopeJIT.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar/Reassociate.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#include <cassert>
+#include <memory>
 
 std::unique_ptr<llvm::LLVMContext> Context;
 std::unique_ptr<llvm::IRBuilder<>> Builder;
@@ -20,10 +25,17 @@ std::unique_ptr<llvm::ModuleAnalysisManager> mam;
 std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
 std::unique_ptr<llvm::StandardInstrumentations> si;
 
+std::unique_ptr<llvm::orc::KaleidoscopeJIT> jit;
+llvm::ExitOnError exitOnErr;
+std::map<std::string, std::unique_ptr<PrototypeAST>> functionProtos;
+
 void initializeModule() {
     Context = std::make_unique<llvm::LLVMContext>();
 
     Module = std::make_unique<llvm::Module>("kaleidoscope", *Context);
+    if (jit) {
+        Module->setDataLayout(jit->getDataLayout());
+    }
 
     Builder = std::make_unique<llvm::IRBuilder<>>(*Context);
 
@@ -44,6 +56,26 @@ void initializeModule() {
     pb.registerModuleAnalyses(*mam);
     pb.registerFunctionAnalyses(*fam);
     pb.crossRegisterProxies(*lam, *fam, *cgam, *mam);
+}
+
+void initializeJIT() {
+    llvm::InitializeNativeTarget();
+    llvm::InitializeNativeTargetAsmPrinter();
+    llvm::InitializeNativeTargetAsmParser();
+
+    jit = exitOnErr(llvm::orc::KaleidoscopeJIT::Create());
+    Module->setDataLayout(jit->getDataLayout());
+}
+
+llvm::Function *getFunction(std::string name) {
+    if (auto *f = Module->getFunction(name))
+        return f;
+    
+    auto fIter = functionProtos.find(name);
+    if (fIter != functionProtos.end())
+        return fIter->second->codegen();
+
+    return nullptr;
 }
 
 void dumpIR() { Module->print(llvm::errs(), nullptr); }
