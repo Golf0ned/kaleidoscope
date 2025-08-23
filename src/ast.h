@@ -62,6 +62,19 @@ class CallExprAST : public ExprAST {
         std::vector<std::unique_ptr<ExprAST>> args;
 };
 
+class IfExprAST : public ExprAST {
+    public:
+        IfExprAST(std::unique_ptr<ExprAST> cond,
+                  std::unique_ptr<ExprAST> tBranch,
+                  std::unique_ptr<ExprAST> fBranch);
+        llvm::Value *codegen() override;
+
+    private:
+        std::unique_ptr<ExprAST> cond;
+        std::unique_ptr<ExprAST> tBranch;
+        std::unique_ptr<ExprAST> fBranch;
+};
+
 class PrototypeAST {
     public:
         PrototypeAST(const std::string &name, std::vector<std::string> args);

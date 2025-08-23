@@ -45,6 +45,12 @@ int Lexer::getTok() {
             return tok_def;
         if (identifierStr == "extern")
             return tok_extern;
+        if (identifierStr == "if")
+            return tok_if;
+        if (identifierStr == "then")
+            return tok_then;
+        if (identifierStr == "else")
+            return tok_else;
         return tok_identifier;
     }
 

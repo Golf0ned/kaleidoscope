@@ -73,6 +73,51 @@ llvm::Value *CallExprAST::codegen() {
     return Builder->CreateCall(calleeF, argsV, "calltmp");
 }
 
+IfExprAST::IfExprAST(std::unique_ptr<ExprAST> cond,
+                     std::unique_ptr<ExprAST> tBranch,
+                     std::unique_ptr<ExprAST> fBranch)
+    : cond(std::move(cond)), tBranch(std::move(tBranch)),
+      fBranch(std::move(fBranch)) {}
+
+llvm::Value *IfExprAST::codegen() {
+    llvm::Value *c = cond->codegen();
+    if (!c)
+        return nullptr;
+
+    c = Builder->CreateFCmpONE(
+        c, llvm::ConstantFP::get(*Context, llvm::APFloat(0.0)), "ifcond");
+
+    llvm::Function *function = Builder->GetInsertBlock()->getParent();
+    llvm::BasicBlock *tBB = llvm::BasicBlock::Create(*Context, "then", function);
+    llvm::BasicBlock *fBB = llvm::BasicBlock::Create(*Context, "else");
+    llvm::BasicBlock *contBB = llvm::BasicBlock::Create(*Context, "ifcont");
+
+    Builder->CreateCondBr(c, tBB, fBB);
+
+    Builder->SetInsertPoint(tBB);
+    llvm::Value *t = tBranch->codegen();
+    if(!t)
+        return nullptr;
+    Builder->CreateBr(contBB);
+    tBB = Builder->GetInsertBlock();
+
+    function->insert(function->end(), fBB);
+    Builder->SetInsertPoint(fBB);
+    llvm::Value *f = fBranch->codegen();
+    if(!f)
+        return nullptr;
+    Builder->CreateBr(contBB);
+    fBB = Builder->GetInsertBlock();
+
+    function->insert(function->end(), contBB);
+    Builder->SetInsertPoint(contBB);
+    llvm::PHINode *p = Builder->CreatePHI(llvm::Type::getDoubleTy(*Context), 2, "iftmp");
+
+    p->addIncoming(t, tBB);
+    p->addIncoming(f, fBB);
+    return p;
+}
+
 PrototypeAST::PrototypeAST(const std::string &name,
                            std::vector<std::string> args)
     : name(name), args(args) {}

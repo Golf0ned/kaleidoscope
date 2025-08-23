@@ -169,6 +169,33 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() {
     return std::make_unique<CallExprAST>(name, std::move(args));
 }
 
+std::unique_ptr<ExprAST> Parser::parseIfExpr() {
+    getNextToken();
+
+    auto cond = parseExpression();
+    if (!cond)
+        return nullptr;
+
+    if (curTok != tok_then)
+        return logError("expected then");
+    getNextToken();
+
+    auto tBranch = parseExpression();
+    if (!tBranch)
+        return nullptr;
+
+    if (curTok != tok_else)
+        return logError("expected else");
+    getNextToken();
+
+    auto fBranch = parseExpression();
+    if (!fBranch)
+        return nullptr;
+
+    return std::make_unique<IfExprAST>(std::move(cond), std::move(tBranch),
+                                       std::move(fBranch));
+}
+
 std::unique_ptr<ExprAST> Parser::parsePrimary() {
     switch (curTok) {
         default:
@@ -179,6 +206,8 @@ std::unique_ptr<ExprAST> Parser::parsePrimary() {
             return parseNumberExpr();
         case '(':
             return parseParenExpr();
+        case tok_if:
+            return parseIfExpr();
     }
 }
 
