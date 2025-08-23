@@ -11,6 +11,7 @@
 #include "llvm/Transforms/Scalar/Reassociate.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 #include <cassert>
+#include <llvm/IR/PassManager.h>
 #include <memory>
 
 std::unique_ptr<llvm::LLVMContext> Context;
@@ -24,6 +25,7 @@ std::unique_ptr<llvm::CGSCCAnalysisManager> cgam;
 std::unique_ptr<llvm::ModuleAnalysisManager> mam;
 std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
 std::unique_ptr<llvm::StandardInstrumentations> si;
+std::unique_ptr<llvm::PassBuilder> pb;
 
 std::unique_ptr<llvm::orc::KaleidoscopeJIT> jit;
 llvm::ExitOnError exitOnErr;
@@ -52,10 +54,12 @@ void initializeModule() {
     fpm->addPass(llvm::GVNPass());
     fpm->addPass(llvm::SimplifyCFGPass());
 
-    llvm::PassBuilder pb;
-    pb.registerModuleAnalyses(*mam);
-    pb.registerFunctionAnalyses(*fam);
-    pb.crossRegisterProxies(*lam, *fam, *cgam, *mam);
+    pb.reset(new llvm::PassBuilder());
+    pb->registerModuleAnalyses(*mam);
+    pb->registerCGSCCAnalyses(*cgam);
+    pb->registerFunctionAnalyses(*fam);
+    pb->registerLoopAnalyses(*lam);
+    pb->crossRegisterProxies(*lam, *fam, *cgam, *mam);
 }
 
 void initializeJIT() {
@@ -70,12 +74,18 @@ void initializeJIT() {
 llvm::Function *getFunction(std::string name) {
     if (auto *f = Module->getFunction(name))
         return f;
-    
+
     auto fIter = functionProtos.find(name);
     if (fIter != functionProtos.end())
         return fIter->second->codegen();
 
     return nullptr;
+}
+
+void runModulePasses() {
+    llvm::ModulePassManager mpm =
+        pb->buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+    mpm.run(*Module, *mam);
 }
 
 void dumpIR() { Module->print(llvm::errs(), nullptr); }

@@ -41,5 +41,6 @@ void initializeJIT();
 
 llvm::Function *getFunction(std::string name);
 
+void runModulePasses();
 void dumpIR();
 void writeToBitcode(const char *filename);

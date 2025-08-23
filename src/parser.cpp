@@ -18,7 +18,6 @@ Parser::Parser(Lexer &lexer) : lexer(lexer) {}
 
 void Parser::run() {
     while (true) {
-        fprintf(stderr, "kaleidoscope> ");
         switch (curTok) {
             case tok_eof:
                 return;
@@ -28,36 +27,26 @@ void Parser::run() {
             case tok_def:
                 if (auto ast = parseDefinition()) {
                     if (auto *ir = ast->codegen()) {
-                        fprintf(stderr, "Read function:\n");
-                        ir->print(llvm::errs());
-                        fprintf(stderr, "\n");
-
                         exitOnErr(jit->addModule(llvm::orc::ThreadSafeModule(
                             std::move(Module), std::move(Context))));
                         initializeModule();
                     }
                 } else
                     getNextToken();
+                fprintf(stderr, "kaleidoscope> ");
                 break;
             case tok_extern:
                 if (auto ast = parseExtern()) {
                     if (auto *ir = ast->codegen()) {
-                        fprintf(stderr, "Read extern:\n");
-                        ir->print(llvm::errs());
-                        fprintf(stderr, "\n");
-
                         functionProtos[ast->getName()] = std::move(ast);
                     }
                 } else
                     getNextToken();
+                fprintf(stderr, "kaleidoscope> ");
                 break;
             default:
                 if (auto ast = parseTopLevelExpr()) {
                     if (auto *ir = ast->codegen()) {
-                        fprintf(stderr, "Read top-level expr:\n");
-                        ir->print(llvm::errs());
-                        fprintf(stderr, "\n");
-
                         auto rt =
                             jit->getMainJITDylib().createResourceTracker();
                         auto tsm = llvm::orc::ThreadSafeModule(
@@ -75,6 +64,7 @@ void Parser::run() {
                     }
                 } else
                     getNextToken();
+                fprintf(stderr, "kaleidoscope> ");
                 break;
         }
     }
@@ -265,8 +255,9 @@ std::unique_ptr<PrototypeAST> Parser::parseExtern() {
 
 std::unique_ptr<FunctionAST> Parser::parseTopLevelExpr() {
     if (auto expression = parseExpression()) {
-        auto prototype = std::make_unique<PrototypeAST>(
-            "__anon_expr", std::vector<std::string>());
+        std::string name = jit ? "__anon_expr" : "";
+        auto prototype =
+            std::make_unique<PrototypeAST>(name, std::vector<std::string>());
         return std::make_unique<FunctionAST>(std::move(prototype),
                                              std::move(expression));
     }

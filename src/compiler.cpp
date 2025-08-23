@@ -16,8 +16,7 @@ void runInteractive() {
     initializeModule();
     initializeJIT();
     parser.run();
-
-    dumpIR();
+    fprintf(stderr, "\n");
 }
 
 void runFileInput(char *inFileName) {
@@ -34,6 +33,8 @@ void runFileInput(char *inFileName) {
     parser.parseStream();
 
     fclose(inFile);
+
+    runModulePasses();
     writeToBitcode(outFileName.c_str());
 }
 
