@@ -88,7 +88,8 @@ llvm::Value *IfExprAST::codegen() {
         c, llvm::ConstantFP::get(*Context, llvm::APFloat(0.0)), "ifcond");
 
     llvm::Function *function = Builder->GetInsertBlock()->getParent();
-    llvm::BasicBlock *tBB = llvm::BasicBlock::Create(*Context, "then", function);
+    llvm::BasicBlock *tBB =
+        llvm::BasicBlock::Create(*Context, "then", function);
     llvm::BasicBlock *fBB = llvm::BasicBlock::Create(*Context, "else");
     llvm::BasicBlock *contBB = llvm::BasicBlock::Create(*Context, "ifcont");
 
@@ -96,7 +97,7 @@ llvm::Value *IfExprAST::codegen() {
 
     Builder->SetInsertPoint(tBB);
     llvm::Value *t = tBranch->codegen();
-    if(!t)
+    if (!t)
         return nullptr;
     Builder->CreateBr(contBB);
     tBB = Builder->GetInsertBlock();
@@ -104,18 +105,84 @@ llvm::Value *IfExprAST::codegen() {
     function->insert(function->end(), fBB);
     Builder->SetInsertPoint(fBB);
     llvm::Value *f = fBranch->codegen();
-    if(!f)
+    if (!f)
         return nullptr;
     Builder->CreateBr(contBB);
     fBB = Builder->GetInsertBlock();
 
     function->insert(function->end(), contBB);
     Builder->SetInsertPoint(contBB);
-    llvm::PHINode *p = Builder->CreatePHI(llvm::Type::getDoubleTy(*Context), 2, "iftmp");
+    llvm::PHINode *p =
+        Builder->CreatePHI(llvm::Type::getDoubleTy(*Context), 2, "iftmp");
 
     p->addIncoming(t, tBB);
     p->addIncoming(f, fBB);
     return p;
+}
+
+ForExprAST::ForExprAST(std::string &varName, std::unique_ptr<ExprAST> start,
+                       std::unique_ptr<ExprAST> end,
+                       std::unique_ptr<ExprAST> step,
+                       std::unique_ptr<ExprAST> body)
+    : varName(varName), start(std::move(start)), end(std::move(end)),
+      step(std::move(step)), body(std::move(body)) {}
+
+llvm::Value *ForExprAST::codegen() {
+    llvm::Value *startVal = start->codegen();
+    if (!startVal)
+        return nullptr;
+
+    llvm::Function *function = Builder->GetInsertBlock()->getParent();
+    llvm::BasicBlock *prevBB = Builder->GetInsertBlock();
+    llvm::BasicBlock *loopBB =
+        llvm::BasicBlock::Create(*Context, "loop", function);
+
+    Builder->CreateBr(loopBB);
+
+    Builder->SetInsertPoint(loopBB);
+    llvm::PHINode *var =
+        Builder->CreatePHI(llvm::Type::getDoubleTy(*Context), 2, varName);
+    var->addIncoming(startVal, prevBB);
+
+    llvm::Value *oldVal = NamedValues[varName];
+    NamedValues[varName] = var;
+
+    if (!body->codegen())
+        return nullptr;
+
+    llvm::Value *stepVal = nullptr;
+    if (step) {
+        stepVal = step->codegen();
+        if (!stepVal)
+            return nullptr;
+    } else {
+        stepVal = llvm::ConstantFP::get(*Context, llvm::APFloat(1.0));
+    }
+
+    llvm::Value *nextVar = Builder->CreateFAdd(var, stepVal, "nextvar");
+
+    llvm::Value *endCond = end->codegen();
+    if (!endCond)
+        return nullptr;
+
+    endCond = Builder->CreateFCmpONE(
+        endCond, llvm::ConstantFP::get(*Context, llvm::APFloat(0.0)),
+        "loopcond");
+
+    llvm::BasicBlock *endBB = Builder->GetInsertBlock();
+    llvm::BasicBlock *afterBB =
+        llvm::BasicBlock::Create(*Context, "afterloop", function);
+    Builder->CreateCondBr(endCond, loopBB, afterBB);
+    Builder->SetInsertPoint(afterBB);
+
+    var->addIncoming(nextVar, endBB);
+
+    if (oldVal)
+        NamedValues[varName] = oldVal;
+    else
+        NamedValues.erase(varName);
+
+    return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*Context));
 }
 
 PrototypeAST::PrototypeAST(const std::string &name,

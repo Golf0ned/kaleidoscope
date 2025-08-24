@@ -75,6 +75,18 @@ class IfExprAST : public ExprAST {
         std::unique_ptr<ExprAST> fBranch;
 };
 
+class ForExprAST : public ExprAST {
+    public:
+        ForExprAST(std::string &varName, std::unique_ptr<ExprAST> start,
+                   std::unique_ptr<ExprAST> end, std::unique_ptr<ExprAST> step,
+                   std::unique_ptr<ExprAST> body);
+        llvm::Value *codegen() override;
+
+    private:
+        std::string varName;
+        std::unique_ptr<ExprAST> start, end, step, body;
+};
+
 class PrototypeAST {
     public:
         PrototypeAST(const std::string &name, std::vector<std::string> args);

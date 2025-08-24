@@ -51,6 +51,10 @@ int Lexer::getTok() {
             return tok_then;
         if (identifierStr == "else")
             return tok_else;
+        if (identifierStr == "for")
+            return tok_for;
+        if (identifierStr == "in")
+            return tok_in;
         return tok_identifier;
     }
 

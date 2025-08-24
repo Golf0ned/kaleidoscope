@@ -196,6 +196,51 @@ std::unique_ptr<ExprAST> Parser::parseIfExpr() {
                                        std::move(fBranch));
 }
 
+std::unique_ptr<ExprAST> Parser::parseForExpr() {
+    getNextToken();
+
+    if (curTok != tok_identifier)
+        return logError("expected start variable name");
+    std::string name = lexer.getIdentifierValue();
+    getNextToken();
+
+    if (curTok != '=')
+        return logError("expected = after start name");
+    getNextToken();
+
+    auto start = parseExpression();
+    if (!start)
+        return nullptr;
+
+    if (curTok != ',')
+        return logError("expected , after start variable");
+    getNextToken();
+
+    auto end = parseExpression();
+    if (!end)
+        return nullptr;
+
+    std::unique_ptr<ExprAST> step;
+    if (curTok == ',') {
+        getNextToken();
+        step = parseExpression();
+        if (!step)
+            return nullptr;
+    }
+
+    if (curTok != tok_in)
+        return logError("expected in after for");
+
+    getNextToken();
+
+    auto body = parseExpression();
+    if (!body)
+        return nullptr;
+
+    return std::make_unique<ForExprAST>(name, std::move(start), std::move(end),
+                                        std::move(step), std::move(body));
+}
+
 std::unique_ptr<ExprAST> Parser::parsePrimary() {
     switch (curTok) {
         default:
@@ -208,6 +253,8 @@ std::unique_ptr<ExprAST> Parser::parsePrimary() {
             return parseParenExpr();
         case tok_if:
             return parseIfExpr();
+        case tok_for:
+            return parseForExpr();
     }
 }
 

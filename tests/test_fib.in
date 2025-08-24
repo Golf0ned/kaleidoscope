@@ -4,4 +4,7 @@ def fib(x)
     else
         fib(x-1) + fib(x-2);
 
-fib(5);
+def fibto(x)
+    for i = 1, i < x + 1 in
+        fib(i);
+
