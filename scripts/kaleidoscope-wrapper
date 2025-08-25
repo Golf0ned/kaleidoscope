@@ -1,0 +1,7 @@
+#!/bin/bash
+
+./build/kaleidoscope $1
+llvm-dis kaleidoscope.bc
+cat kaleidoscope.ll scripts/entry.ll > cat.ll
+opt cat.ll -o opt.bc
+clang opt.bc build/CMakeFiles/kaleidoscope.dir/src/runtime.cpp.o
