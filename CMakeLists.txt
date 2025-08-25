@@ -11,6 +11,7 @@ set(SOURCES
     src/lexer.cpp
     src/llvm.cpp
     src/parser.cpp
+    src/runtime.cpp
 )
 
 add_executable(kaleidoscope ${SOURCES})
