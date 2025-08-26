@@ -14,6 +14,8 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
 
+extern std::unordered_map<char, int> binopPrecedence;
+
 llvm::Value *LogErrorV(const char *str);
 
 class ExprAST {
@@ -49,6 +51,16 @@ class BinaryExprAST : public ExprAST {
     private:
         char op;
         std::unique_ptr<ExprAST> left, right;
+};
+
+class UnaryExprAST : public ExprAST {
+    public:
+        UnaryExprAST(char op, std::unique_ptr<ExprAST> operand);
+        llvm::Value *codegen() override;
+
+    private:
+        char op;
+        std::unique_ptr<ExprAST> operand;
 };
 
 class CallExprAST : public ExprAST {
@@ -89,14 +101,21 @@ class ForExprAST : public ExprAST {
 
 class PrototypeAST {
     public:
-        PrototypeAST(const std::string &name, std::vector<std::string> args);
+        PrototypeAST(const std::string &name, std::vector<std::string> args,
+                     bool isOperator = false, unsigned precedence = 0);
         const std::string &getName() const;
         const std::vector<std::string> &getArgs();
+        bool isUnaryOp() const;
+        bool isBinaryOp() const;
+        char getOperatorName() const;
+        unsigned getBinaryPrecedence() const;
         llvm::Function *codegen();
 
     private:
         std::string name;
         std::vector<std::string> args;
+        bool isOperator;
+        unsigned precedence;
 };
 
 class FunctionAST {

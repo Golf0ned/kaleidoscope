@@ -5,6 +5,13 @@
 #include "ast.h"
 #include "llvm.h"
 
+std::unordered_map<char, int> binopPrecedence = {
+    {'*', 40},
+    {'+', 20},
+    {'-', 20},
+    {'<', 10},
+};
+
 llvm::Value *LogErrorV(const char *str) {
     fprintf(stderr, "Error: %s\n", str);
     return nullptr;
@@ -47,8 +54,29 @@ llvm::Value *BinaryExprAST::codegen() {
             return Builder->CreateUIToFP(l, llvm::Type::getDoubleTy(*Context),
                                          "booltmp");
         default:
-            return LogErrorV("invalid binary operator");
+            break;
     }
+
+    llvm::Function *f = getFunction(std::string("binary") + op);
+    assert(f && "binary operator not found!");
+
+    llvm::Value *ops[2] = {l, r};
+    return Builder->CreateCall(f, ops, "binop");
+}
+
+UnaryExprAST::UnaryExprAST(char op, std::unique_ptr<ExprAST> operand)
+    : op(op), operand(std::move(operand)) {}
+
+llvm::Value *UnaryExprAST::codegen() {
+    llvm::Value *operandV = operand->codegen();
+    if (!operandV)
+        return nullptr;
+
+    llvm::Function *f = getFunction(std::string("unary") + op);
+    if (!f)
+        return LogErrorV("unknown unary operator");
+
+    return Builder->CreateCall(f, operandV, "unop");
 }
 
 CallExprAST::CallExprAST(const std::string &callee,
@@ -186,12 +214,24 @@ llvm::Value *ForExprAST::codegen() {
 }
 
 PrototypeAST::PrototypeAST(const std::string &name,
-                           std::vector<std::string> args)
-    : name(name), args(args) {}
+                           std::vector<std::string> args, bool isOperator,
+                           unsigned precedence)
+    : name(name), args(args), isOperator(isOperator), precedence(precedence) {}
 
 const std::string &PrototypeAST::getName() const { return name; }
 
 const std::vector<std::string> &PrototypeAST::getArgs() { return args; }
+
+bool PrototypeAST::isUnaryOp() const { return isOperator && args.size() == 1; }
+
+bool PrototypeAST::isBinaryOp() const { return isOperator && args.size() == 2; }
+
+char PrototypeAST::getOperatorName() const {
+    assert(isUnaryOp() || isBinaryOp());
+    return name[name.size() - 1];
+}
+
+unsigned PrototypeAST::getBinaryPrecedence() const { return precedence; }
 
 llvm::Function *PrototypeAST::codegen() {
     std::vector<llvm::Type *> doubles(args.size(),
@@ -231,6 +271,9 @@ llvm::Function *FunctionAST::codegen() {
     auto argIter = f->arg_begin();
     for (unsigned i = 0; i != newArgs.size(); ++i, ++argIter)
         argIter->setName(newArgs[i]);
+
+    if (p.isBinaryOp())
+        binopPrecedence[p.getOperatorName()] = p.getBinaryPrecedence();
 
     llvm::BasicBlock *bb = llvm::BasicBlock::Create(*Context, "entry", f);
     Builder->SetInsertPoint(bb);
