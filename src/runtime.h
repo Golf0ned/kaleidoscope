@@ -5,6 +5,8 @@
 #endif
 
 extern "C" DLLEXPORT double print(double val);
+extern "C" DLLEXPORT double println(double val);
+extern "C" DLLEXPORT double put(double val);
 extern "C" DLLEXPORT double printStar();
 extern "C" DLLEXPORT double printSpace();
 extern "C" DLLEXPORT double printNewLine();
