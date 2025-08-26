@@ -1,0 +1,9 @@
+extern print(x);
+extern println(x);
+extern put(x);
+
+def foo()
+    for i = 0, i < 10 in
+        println(i);
+
+foo();
