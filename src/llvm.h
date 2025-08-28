@@ -1,5 +1,6 @@
 #pragma once
 
+#include <llvm/ADT/StringRef.h>
 #include <map>
 #include <memory>
 #include <string>
@@ -22,7 +23,7 @@
 extern std::unique_ptr<llvm::LLVMContext> Context;
 extern std::unique_ptr<llvm::IRBuilder<>> Builder;
 extern std::unique_ptr<llvm::Module> Module;
-extern std::map<std::string, llvm::Value *> NamedValues;
+extern std::map<std::string, llvm::AllocaInst *> NamedValues;
 
 extern std::unique_ptr<llvm::FunctionPassManager> fpm;
 extern std::unique_ptr<llvm::LoopAnalysisManager> lam;
@@ -40,6 +41,8 @@ void initializeModule();
 void initializeJIT();
 
 llvm::Function *getFunction(std::string name);
+llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *function,
+                                                llvm::StringRef varName);
 
 void runModulePasses();
 void dumpIR();

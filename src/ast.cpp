@@ -1,6 +1,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
+#include <llvm/IR/Instructions.h>
 
 #include "ast.h"
 #include "llvm.h"
@@ -26,10 +27,10 @@ llvm::Value *NumberExprAST::codegen() {
 VariableExprAST::VariableExprAST(const std::string &name) : name(name) {}
 
 llvm::Value *VariableExprAST::codegen() {
-    llvm::Value *v = NamedValues[name];
-    if (!v)
+    llvm::AllocaInst *a = NamedValues[name];
+    if (!a)
         LogErrorV("Unknown variable name");
-    return v;
+    return Builder->CreateLoad(a->getAllocatedType(), a, name.c_str());
 }
 
 BinaryExprAST::BinaryExprAST(char op, std::unique_ptr<ExprAST> left,
@@ -156,11 +157,14 @@ ForExprAST::ForExprAST(std::string &varName, std::unique_ptr<ExprAST> start,
       step(std::move(step)), body(std::move(body)) {}
 
 llvm::Value *ForExprAST::codegen() {
+    llvm::Function *function = Builder->GetInsertBlock()->getParent();
+
+    llvm::AllocaInst *alloca = createEntryBlockAlloca(function, varName);
     llvm::Value *startVal = start->codegen();
     if (!startVal)
         return nullptr;
+    Builder->CreateStore(startVal, alloca);
 
-    llvm::Function *function = Builder->GetInsertBlock()->getParent();
     llvm::BasicBlock *prevBB = Builder->GetInsertBlock();
     llvm::BasicBlock *loopBB =
         llvm::BasicBlock::Create(*Context, "loop", function);
@@ -168,12 +172,9 @@ llvm::Value *ForExprAST::codegen() {
     Builder->CreateBr(loopBB);
 
     Builder->SetInsertPoint(loopBB);
-    llvm::PHINode *var =
-        Builder->CreatePHI(llvm::Type::getDoubleTy(*Context), 2, varName);
-    var->addIncoming(startVal, prevBB);
 
-    llvm::Value *oldVal = NamedValues[varName];
-    NamedValues[varName] = var;
+    llvm::AllocaInst *oldVal = NamedValues[varName];
+    NamedValues[varName] = alloca;
 
     if (!body->codegen())
         return nullptr;
@@ -187,7 +188,10 @@ llvm::Value *ForExprAST::codegen() {
         stepVal = llvm::ConstantFP::get(*Context, llvm::APFloat(1.0));
     }
 
-    llvm::Value *nextVar = Builder->CreateFAdd(var, stepVal, "nextvar");
+    llvm::Value *curVar = Builder->CreateLoad(alloca->getAllocatedType(),
+                                              alloca, varName.c_str());
+    llvm::Value *nextVar = Builder->CreateFAdd(curVar, stepVal, "nextvar");
+    Builder->CreateStore(nextVar, alloca);
 
     llvm::Value *endCond = end->codegen();
     if (!endCond)
@@ -202,8 +206,6 @@ llvm::Value *ForExprAST::codegen() {
         llvm::BasicBlock::Create(*Context, "afterloop", function);
     Builder->CreateCondBr(endCond, loopBB, afterBB);
     Builder->SetInsertPoint(afterBB);
-
-    var->addIncoming(nextVar, endBB);
 
     if (oldVal)
         NamedValues[varName] = oldVal;
@@ -279,8 +281,11 @@ llvm::Function *FunctionAST::codegen() {
     Builder->SetInsertPoint(bb);
 
     NamedValues.clear();
-    for (auto &arg : f->args())
-        NamedValues[std::string(arg.getName())] = &arg;
+    for (auto &arg : f->args()) {
+        llvm::AllocaInst *alloca = createEntryBlockAlloca(f, arg.getName());
+        Builder->CreateStore(&arg, alloca);
+        NamedValues[std::string(arg.getName())] = alloca;
+    }
 
     if (llvm::Value *retVal = body->codegen()) {
         Builder->CreateRet(retVal);

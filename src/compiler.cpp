@@ -34,7 +34,7 @@ void runFileInput(char *inFileName) {
 
     fclose(inFile);
 
-    runModulePasses();
+    // runModulePasses();
     writeToBitcode(outFileName.c_str());
 }
 

@@ -2,6 +2,7 @@
 #include "ast.h"
 #include "kaleidoscopeJIT.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/StandardInstrumentations.h"
 #include "llvm/Support/TargetSelect.h"
@@ -10,14 +11,14 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar/Reassociate.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#include "llvm/Transforms/Utils/Mem2Reg.h"
 #include <cassert>
-#include <llvm/IR/PassManager.h>
 #include <memory>
 
 std::unique_ptr<llvm::LLVMContext> Context;
 std::unique_ptr<llvm::IRBuilder<>> Builder;
 std::unique_ptr<llvm::Module> Module;
-std::map<std::string, llvm::Value *> NamedValues;
+std::map<std::string, llvm::AllocaInst *> NamedValues;
 std::unique_ptr<llvm::FunctionPassManager> fpm;
 std::unique_ptr<llvm::LoopAnalysisManager> lam;
 std::unique_ptr<llvm::FunctionAnalysisManager> fam;
@@ -49,6 +50,7 @@ void initializeModule() {
     pic = std::make_unique<llvm::PassInstrumentationCallbacks>();
     si = std::make_unique<llvm::StandardInstrumentations>(*Context, true);
 
+    fpm->addPass(llvm::PromotePass());
     fpm->addPass(llvm::InstCombinePass());
     fpm->addPass(llvm::ReassociatePass());
     fpm->addPass(llvm::GVNPass());
@@ -80,6 +82,14 @@ llvm::Function *getFunction(std::string name) {
         return fIter->second->codegen();
 
     return nullptr;
+}
+
+llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *function,
+                                                llvm::StringRef varName) {
+    llvm::IRBuilder<> builder(&function->getEntryBlock(),
+                              function->getEntryBlock().begin());
+    return builder.CreateAlloca(llvm::Type::getDoubleTy(*Context), nullptr,
+                                varName);
 }
 
 void runModulePasses() {
