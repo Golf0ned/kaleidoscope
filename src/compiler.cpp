@@ -4,7 +4,8 @@
 #include "llvm.h"
 #include "parser.h"
 
-const std::string outFileName = "kaleidoscope.bc";
+const std::string bitcodeOutFileName = "kaleidoscope.bc";
+const std::string objectOutFileName = "kaleidoscope.o";
 
 void runInteractive() {
     Lexer lexer(stdin);
@@ -35,7 +36,10 @@ void runFileInput(char *inFileName) {
     fclose(inFile);
 
     runModulePasses();
-    writeToBitcode(outFileName.c_str());
+
+    // writeToBitcode(bitcodeOutFileName.c_str());
+
+    writeObject(objectOutFileName.c_str());
 }
 
 int main(int argc, char **argv) {

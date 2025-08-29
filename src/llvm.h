@@ -45,5 +45,7 @@ llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *function,
                                                 llvm::StringRef varName);
 
 void runModulePasses();
+
 void dumpIR();
 void writeToBitcode(const char *filename);
+void writeObject(const char *filename);
