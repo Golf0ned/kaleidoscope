@@ -1,16 +1,14 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 
 #include "ast.h"
 #include "llvm.h"
 
 std::unordered_map<char, int> binopPrecedence = {
-    {'*', 40},
-    {'+', 20},
-    {'-', 20},
-    {'<', 10},
+    {'*', 40}, {'+', 20}, {'-', 20}, {'<', 10}, {'=', 2},
 };
 
 llvm::Value *LogErrorV(const char *str) {
@@ -33,11 +31,30 @@ llvm::Value *VariableExprAST::codegen() {
     return Builder->CreateLoad(a->getAllocatedType(), a, name.c_str());
 }
 
+const std::string VariableExprAST::getName() { return name; }
+
 BinaryExprAST::BinaryExprAST(char op, std::unique_ptr<ExprAST> left,
                              std::unique_ptr<ExprAST> right)
     : op(op), left(std::move(left)), right(std::move(right)) {}
 
 llvm::Value *BinaryExprAST::codegen() {
+    if (op == '=') {
+        VariableExprAST *leftExpr = static_cast<VariableExprAST *>(left.get());
+        if (!leftExpr)
+            return LogErrorV("destination of '=' must be variable");
+
+        llvm::Value *val = right->codegen();
+        if (!val)
+            return nullptr;
+
+        llvm::Value *var = NamedValues[leftExpr->getName()];
+        if (!var)
+            return LogErrorV("unknown variable name");
+
+        Builder->CreateStore(val, var);
+        return val;
+    }
+
     llvm::Value *l = left->codegen();
     llvm::Value *r = right->codegen();
     if (!l || !r)
@@ -213,6 +230,42 @@ llvm::Value *ForExprAST::codegen() {
         NamedValues.erase(varName);
 
     return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*Context));
+}
+
+VarExprAST::VarExprAST(std::vector<VarNamePair> varNames,
+                       std::unique_ptr<ExprAST> body)
+    : varNames(std::move(varNames)), body(std::move(body)) {}
+
+llvm::Value *VarExprAST::codegen() {
+    std::vector<llvm::AllocaInst *> oldBindings;
+    llvm::Function *function = Builder->GetInsertBlock()->getParent();
+
+    for (unsigned i = 0, e = varNames.size(); i != e; i++) {
+        const std::string &name = varNames[i].first;
+        ExprAST *init = varNames[i].second.get();
+
+        llvm::Value *initVal =
+            init ? init->codegen()
+                 : llvm::ConstantFP::get(*Context, llvm::APFloat(0.0));
+        if (!initVal)
+            return nullptr;
+
+        llvm::AllocaInst *alloca = createEntryBlockAlloca(function, name);
+        Builder->CreateStore(initVal, alloca);
+
+        oldBindings.push_back(NamedValues[name]);
+        NamedValues[name] = alloca;
+    }
+
+    llvm::Value *bodyVal = body->codegen();
+    if (!bodyVal)
+        return nullptr;
+
+    for (unsigned i = 0, e = varNames.size(); i != e; i++) {
+        NamedValues[varNames[i].first] = oldBindings[i];
+    }
+
+    return bodyVal;
 }
 
 PrototypeAST::PrototypeAST(const std::string &name,

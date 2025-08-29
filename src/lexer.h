@@ -26,6 +26,9 @@ enum Token {
     // operators
     tok_binary = -11,
     tok_unary = -12,
+
+    // variable time
+    tok_var = -13,
 };
 
 class Lexer {

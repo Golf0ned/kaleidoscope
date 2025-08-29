@@ -37,6 +37,7 @@ class VariableExprAST : public ExprAST {
     public:
         VariableExprAST(const std::string &name);
         llvm::Value *codegen() override;
+        const std::string getName();
 
     private:
         std::string name;
@@ -97,6 +98,19 @@ class ForExprAST : public ExprAST {
     private:
         std::string varName;
         std::unique_ptr<ExprAST> start, end, step, body;
+};
+
+using VarNamePair = std::pair<std::string, std::unique_ptr<ExprAST>>;
+
+class VarExprAST : public ExprAST {
+    public:
+        VarExprAST(std::vector<VarNamePair> varNames,
+                   std::unique_ptr<ExprAST> body);
+        llvm::Value *codegen() override;
+
+    private:
+        std::vector<VarNamePair> varNames;
+        std::unique_ptr<ExprAST> body;
 };
 
 class PrototypeAST {

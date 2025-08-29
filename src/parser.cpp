@@ -3,6 +3,7 @@
 #include <memory>
 #include <unordered_map>
 
+#include "ast.h"
 #include "lexer.h"
 #include "llvm.h"
 #include "parser.h"
@@ -234,6 +235,40 @@ std::unique_ptr<ExprAST> Parser::parseForExpr() {
                                         std::move(step), std::move(body));
 }
 
+std::unique_ptr<ExprAST> Parser::parseVarExpr() {
+    std::vector<VarNamePair> varNames;
+
+    do {
+        getNextToken(); // eats "var" or comma
+        if (curTok != tok_identifier)
+            return logError("expected identifier after var");
+
+        std::string name = lexer.getIdentifierValue();
+        getNextToken();
+
+        std::unique_ptr<ExprAST> init;
+        if (curTok == '=') {
+            getNextToken();
+
+            init = parseExpression();
+            if (!init)
+                return nullptr;
+        }
+
+        varNames.emplace_back(name, std::move(init));
+    } while (curTok == ',');
+
+    if (curTok != tok_in)
+        return logError("expected 'in' after 'var'");
+    getNextToken();
+
+    auto body = parseExpression();
+    if (!body)
+        return nullptr;
+
+    return std::make_unique<VarExprAST>(std::move(varNames), std::move(body));
+}
+
 std::unique_ptr<ExprAST> Parser::parseUnary() {
     if (!isascii(curTok) || curTok == '(' || curTok == ',')
         return parsePrimary();
@@ -259,6 +294,8 @@ std::unique_ptr<ExprAST> Parser::parsePrimary() {
             return parseIfExpr();
         case tok_for:
             return parseForExpr();
+        case tok_var:
+            return parseVarExpr();
     }
 }
 
