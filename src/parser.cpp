@@ -408,7 +408,7 @@ std::unique_ptr<PrototypeAST> Parser::parseExtern() {
 
 std::unique_ptr<FunctionAST> Parser::parseTopLevelExpr() {
     if (auto expression = parseExpression()) {
-        std::string name = jit ? "__anon_expr" : "";
+        std::string name = jit ? "__anon_expr" : "main";
         auto prototype =
             std::make_unique<PrototypeAST>(name, std::vector<std::string>());
         return std::make_unique<FunctionAST>(std::move(prototype),

@@ -1,8 +1,10 @@
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DIBuilder.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Instructions.h>
+#include <llvm/ADT/StringRef.h>
 
 #include "ast.h"
 #include "llvm.h"
@@ -332,6 +334,19 @@ llvm::Function *FunctionAST::codegen() {
 
     llvm::BasicBlock *bb = llvm::BasicBlock::Create(*Context, "entry", f);
     Builder->SetInsertPoint(bb);
+
+    if (true) {
+        llvm::DIFile *unit = dbuilder->createFile(ksDbgInfo.cu->getFilename(),
+                                                  ksDbgInfo.cu->getDirectory());
+
+        llvm::DIScope *fContext = unit;
+        unsigned lineNo = 0, scopeLine = 0;
+        llvm::DISubprogram *sp = dbuilder->createFunction(
+            fContext, p.getName(), llvm::StringRef(), unit, lineNo,
+            createFunctionType(f->arg_size()), scopeLine,
+            llvm::DINode::FlagPrototyped, llvm::DISubprogram::SPFlagDefinition);
+        f->setSubprogram(sp);
+    }
 
     NamedValues.clear();
     for (auto &arg : f->args()) {

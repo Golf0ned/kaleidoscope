@@ -2,6 +2,7 @@
 #include "ast.h"
 #include "kaleidoscopeJIT.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/IR/DIBuilder.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/StandardInstrumentations.h"
@@ -15,6 +16,7 @@
 #include "llvm/Transforms/Utils/Mem2Reg.h"
 #include <cassert>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/Metadata.h>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/CodeGen.h>
 #include <memory>
@@ -35,6 +37,16 @@ std::unique_ptr<llvm::PassBuilder> pb;
 std::unique_ptr<llvm::orc::KaleidoscopeJIT> jit;
 llvm::ExitOnError exitOnErr;
 std::map<std::string, std::unique_ptr<PrototypeAST>> functionProtos;
+
+std::unique_ptr<llvm::DIBuilder> dbuilder;
+
+llvm::DIType *DebugInfo::getDoubleTy() {
+    if (dblTy)
+        return dblTy;
+
+    dblTy = dbuilder->createBasicType("double", 64, llvm::dwarf::DW_ATE_float);
+    return dblTy;
+}
 
 void initializeModule() {
     Context = std::make_unique<llvm::LLVMContext>();
@@ -77,6 +89,17 @@ void initializeJIT() {
     Module->setDataLayout(jit->getDataLayout());
 }
 
+void debugSetup() {
+    dbuilder = std::make_unique<llvm::DIBuilder>(*Module);
+    ksDbgInfo.cu = dbuilder->createCompileUnit(
+        llvm::dwarf::DW_LANG_C, dbuilder->createFile("kaleidoscope.ks", "."),
+        "kaleidoscope", false, "", 0);
+}
+
+void debugFinalize() {
+    dbuilder->finalize();
+}
+
 llvm::Function *getFunction(std::string name) {
     if (auto *f = Module->getFunction(name))
         return f;
@@ -94,6 +117,19 @@ llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *function,
                               function->getEntryBlock().begin());
     return builder.CreateAlloca(llvm::Type::getDoubleTy(*Context), nullptr,
                                 varName);
+}
+
+llvm::DISubroutineType *createFunctionType(unsigned numArgs) {
+    llvm::SmallVector<llvm::Metadata *, 8> eltTys;
+    llvm::DIType *dblTy = ksDbgInfo.getDoubleTy();
+
+    eltTys.push_back(dblTy);
+
+    for (unsigned i = 0, e = numArgs; i != e; i++) {
+        eltTys.push_back(dblTy);
+    }
+
+    return dbuilder->createSubroutineType(dbuilder->getOrCreateTypeArray(eltTys));
 }
 
 void runModulePasses() {
