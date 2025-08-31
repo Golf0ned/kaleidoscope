@@ -13,6 +13,9 @@ std::vector<llvm::DIScope *> lexicalBlocks;
 SourceLocation curLoc;
 SourceLocation lexLoc = {1, 0};
 
+SourceLocation curLoc;
+SourceLocation lexLoc = {1, 0};
+
 llvm::DIType *DebugInfo::getDoubleTy() {
     if (dblTy)
         return dblTy;
