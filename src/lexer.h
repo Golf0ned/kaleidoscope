@@ -34,6 +34,7 @@ enum Token {
 class Lexer {
     public:
         Lexer(FILE *inStream);
+        int advance();
         int getTok();
         std::string getIdentifierValue();
         double getNumericValue();

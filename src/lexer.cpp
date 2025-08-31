@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "debug.h"
 #include "lexer.h"
 
 Lexer::Lexer(FILE *inStream) : inStream(inStream) { lastChar = ' '; }
@@ -12,7 +13,7 @@ double Lexer::getNumericValue() { return numVal; }
 
 void Lexer::readIdentifierOrKeyword() {
     identifierStr = lastChar;
-    while (isalnum((lastChar = getc(inStream)))) {
+    while (isalnum((lastChar = advance()))) {
         identifierStr += lastChar;
     }
 }
@@ -22,7 +23,7 @@ void Lexer::readNumeric() {
 
     do {
         buffer += lastChar;
-        lastChar = getc(inStream);
+        lastChar = advance();
     } while (isdigit(lastChar) || lastChar == '.');
 
     numVal = std::strtod(buffer.c_str(), nullptr);
@@ -30,13 +31,27 @@ void Lexer::readNumeric() {
 
 void Lexer::readComment() {
     do {
-        lastChar = getc(inStream);
+        lastChar = advance();
     } while (lastChar != EOF && lastChar != '\n' && lastChar != '\r');
+}
+
+int Lexer::advance() {
+    int lastChar = getc(inStream);
+
+    if (debug) {
+        if (lastChar == '\n' || lastChar == '\r') {
+            lexLoc.line++;
+            lexLoc.col = 0;
+        } else
+            lexLoc.col++;
+    }
+
+    return lastChar;
 }
 
 int Lexer::getTok() {
     while (isspace(lastChar)) {
-        lastChar = getc(inStream);
+        lastChar = advance();
     }
 
     if (isalpha(lastChar)) {
@@ -80,6 +95,6 @@ int Lexer::getTok() {
     }
 
     int curChar = lastChar;
-    lastChar = getc(inStream);
+    lastChar = advance();
     return curChar;
 }

@@ -7,7 +7,6 @@
 
 const std::string bitcodeOutFileName = "kaleidoscope.bc";
 const std::string objectOutFileName = "kaleidoscope.o";
-constexpr bool debug = false;
 
 void runInteractive() {
     Lexer lexer(stdin);
@@ -31,19 +30,20 @@ void runFileInput(char *inFileName) {
 
     Lexer lexer(inFile);
     Parser parser(lexer);
+
+    if (debug)
+        debugSetup();
+
     parser.getNextToken();
 
     parser.parseStream();
 
     fclose(inFile);
 
-    if (debug) {
-        debugSetup();
-    } else {
+    if (!debug)
         runModulePasses();
-    }
 
-    // writeToBitcode(bitcodeOutFileName.c_str());
+    writeToBitcode(bitcodeOutFileName.c_str());
 
     if (debug) {
         debugFinalize();

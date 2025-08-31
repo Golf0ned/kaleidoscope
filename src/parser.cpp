@@ -5,6 +5,7 @@
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 
 #include "ast.h"
+#include "debug.h"
 #include "lexer.h"
 #include "llvm.h"
 #include "parser.h"
@@ -138,9 +139,11 @@ std::unique_ptr<ExprAST> Parser::parseParenExpr() {
 std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() {
     std::string name = lexer.getIdentifierValue();
 
+    SourceLocation litLoc = curLoc;
+
     getNextToken();
     if (curTok != '(') // variable
-        return std::make_unique<VariableExprAST>(name);
+        return std::make_unique<VariableExprAST>(litLoc, name);
 
     // else, function call
     getNextToken();
@@ -161,10 +164,12 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() {
     }
 
     getNextToken();
-    return std::make_unique<CallExprAST>(name, std::move(args));
+    return std::make_unique<CallExprAST>(litLoc, name, std::move(args));
 }
 
 std::unique_ptr<ExprAST> Parser::parseIfExpr() {
+    SourceLocation ifLoc = curLoc;
+
     getNextToken();
 
     auto cond = parseExpression();
@@ -187,8 +192,8 @@ std::unique_ptr<ExprAST> Parser::parseIfExpr() {
     if (!fBranch)
         return nullptr;
 
-    return std::make_unique<IfExprAST>(std::move(cond), std::move(tBranch),
-                                       std::move(fBranch));
+    return std::make_unique<IfExprAST>(ifLoc, std::move(cond),
+                                       std::move(tBranch), std::move(fBranch));
 }
 
 std::unique_ptr<ExprAST> Parser::parseForExpr() {
@@ -315,6 +320,7 @@ Parser::parseExpressionRest(int minPrecedence, std::unique_ptr<ExprAST> prev) {
         if (curPrecedence < minPrecedence)
             return prev;
 
+        SourceLocation binLoc = curLoc;
         int binOp = curTok;
         getNextToken();
 
@@ -328,7 +334,7 @@ Parser::parseExpressionRest(int minPrecedence, std::unique_ptr<ExprAST> prev) {
             if (!next)
                 return nullptr;
         }
-        prev = std::make_unique<BinaryExprAST>(binOp, std::move(prev),
+        prev = std::make_unique<BinaryExprAST>(binLoc, binOp, std::move(prev),
                                                std::move(next));
     }
 }

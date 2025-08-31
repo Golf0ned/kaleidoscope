@@ -5,6 +5,8 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Support/raw_ostream.h"
+#include <llvm/IR/DebugInfoMetadata.h>
 
 #include "ast.h"
 #include "debug.h"
@@ -19,28 +21,59 @@ llvm::Value *LogErrorV(const char *str) {
     return nullptr;
 }
 
+llvm::raw_ostream &indent(llvm::raw_ostream &o, int size) {
+    return o << std::string(size, ' ');
+}
+
+ExprAST::ExprAST(SourceLocation loc) : loc(loc) {}
+
+int ExprAST::getLine() const { return loc.line; }
+
+int ExprAST::getCol() const { return loc.col; }
+
+llvm::raw_ostream &ExprAST::dump(llvm::raw_ostream &out, int ind) {
+    return out << ':' << getLine() << ':' << getCol() << '\n';
+}
+
 NumberExprAST::NumberExprAST(double val) : val(val) {}
 
 llvm::Value *NumberExprAST::codegen() {
+    if (debug)
+        ksDbgInfo.emitLocation(this);
     return llvm::ConstantFP::get(*Context, llvm::APFloat(val));
 }
 
-VariableExprAST::VariableExprAST(const std::string &name) : name(name) {}
+llvm::raw_ostream &NumberExprAST::dump(llvm::raw_ostream &out, int ind) {
+    return ExprAST::dump(out << val, ind);
+}
+
+VariableExprAST::VariableExprAST(SourceLocation loc, const std::string &name)
+    : ExprAST(loc), name(name) {}
 
 llvm::Value *VariableExprAST::codegen() {
     llvm::AllocaInst *a = NamedValues[name];
     if (!a)
         LogErrorV("Unknown variable name");
+    if (debug)
+        ksDbgInfo.emitLocation(this);
     return Builder->CreateLoad(a->getAllocatedType(), a, name.c_str());
+}
+
+llvm::raw_ostream &VariableExprAST::dump(llvm::raw_ostream &out, int ind) {
+    return ExprAST::dump(out << name, ind);
 }
 
 const std::string VariableExprAST::getName() { return name; }
 
-BinaryExprAST::BinaryExprAST(char op, std::unique_ptr<ExprAST> left,
+BinaryExprAST::BinaryExprAST(SourceLocation loc, char op,
+                             std::unique_ptr<ExprAST> left,
                              std::unique_ptr<ExprAST> right)
-    : op(op), left(std::move(left)), right(std::move(right)) {}
+    : ExprAST(loc), op(op), left(std::move(left)), right(std::move(right)) {}
 
 llvm::Value *BinaryExprAST::codegen() {
+    if (debug)
+        ksDbgInfo.emitLocation(this);
+
     if (op == '=') {
         VariableExprAST *leftExpr = static_cast<VariableExprAST *>(left.get());
         if (!leftExpr)
@@ -85,6 +118,13 @@ llvm::Value *BinaryExprAST::codegen() {
     return Builder->CreateCall(f, ops, "binop");
 }
 
+llvm::raw_ostream &BinaryExprAST::dump(llvm::raw_ostream &out, int ind) {
+    ExprAST::dump(out << "binary" << op, ind);
+    left->dump(indent(out, ind) << "LHS:", ind + 1);
+    right->dump(indent(out, ind) << "RHS:", ind + 1);
+    return out;
+}
+
 UnaryExprAST::UnaryExprAST(char op, std::unique_ptr<ExprAST> operand)
     : op(op), operand(std::move(operand)) {}
 
@@ -97,14 +137,26 @@ llvm::Value *UnaryExprAST::codegen() {
     if (!f)
         return LogErrorV("unknown unary operator");
 
+    if (debug)
+        ksDbgInfo.emitLocation(this);
+
     return Builder->CreateCall(f, operandV, "unop");
 }
 
-CallExprAST::CallExprAST(const std::string &callee,
+llvm::raw_ostream &UnaryExprAST::dump(llvm::raw_ostream &out, int ind) {
+    ExprAST::dump(out << "unary" << op, ind);
+    operand->dump(out, ind + 1);
+    return out;
+}
+
+CallExprAST::CallExprAST(SourceLocation loc, const std::string &callee,
                          std::vector<std::unique_ptr<ExprAST>> args)
-    : callee(callee), args(std::move(args)) {}
+    : ExprAST(loc), callee(callee), args(std::move(args)) {}
 
 llvm::Value *CallExprAST::codegen() {
+    if (debug)
+        ksDbgInfo.emitLocation(this);
+
     llvm::Function *calleeF = getFunction(callee);
     if (!calleeF)
         return LogErrorV("unknown function referenced");
@@ -122,13 +174,23 @@ llvm::Value *CallExprAST::codegen() {
     return Builder->CreateCall(calleeF, argsV, "calltmp");
 }
 
-IfExprAST::IfExprAST(std::unique_ptr<ExprAST> cond,
+llvm::raw_ostream &CallExprAST::dump(llvm::raw_ostream &out, int ind) {
+    ExprAST::dump(out << "call " << callee, ind);
+    for (const auto &arg : args)
+        arg->dump(indent(out, ind + 1), ind + 1);
+    return out;
+}
+
+IfExprAST::IfExprAST(SourceLocation loc, std::unique_ptr<ExprAST> cond,
                      std::unique_ptr<ExprAST> tBranch,
                      std::unique_ptr<ExprAST> fBranch)
-    : cond(std::move(cond)), tBranch(std::move(tBranch)),
+    : ExprAST(loc), cond(std::move(cond)), tBranch(std::move(tBranch)),
       fBranch(std::move(fBranch)) {}
 
 llvm::Value *IfExprAST::codegen() {
+    if (debug)
+        ksDbgInfo.emitLocation(this);
+
     llvm::Value *c = cond->codegen();
     if (!c)
         return nullptr;
@@ -169,6 +231,14 @@ llvm::Value *IfExprAST::codegen() {
     return p;
 }
 
+llvm::raw_ostream &IfExprAST::dump(llvm::raw_ostream &out, int ind) {
+    ExprAST::dump(out << "if", ind);
+    cond->dump(indent(out, ind) << "cond: ", ind + 1);
+    tBranch->dump(indent(out, ind) << "tBranch: ", ind + 1);
+    fBranch->dump(indent(out, ind) << "fBranch: ", ind + 1);
+    return out;
+}
+
 ForExprAST::ForExprAST(std::string &varName, std::unique_ptr<ExprAST> start,
                        std::unique_ptr<ExprAST> end,
                        std::unique_ptr<ExprAST> step,
@@ -180,6 +250,10 @@ llvm::Value *ForExprAST::codegen() {
     llvm::Function *function = Builder->GetInsertBlock()->getParent();
 
     llvm::AllocaInst *alloca = createEntryBlockAlloca(function, varName);
+
+    if (debug)
+        ksDbgInfo.emitLocation(this);
+
     llvm::Value *startVal = start->codegen();
     if (!startVal)
         return nullptr;
@@ -235,6 +309,15 @@ llvm::Value *ForExprAST::codegen() {
     return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*Context));
 }
 
+llvm::raw_ostream &ForExprAST::dump(llvm::raw_ostream &out, int ind) {
+    ExprAST::dump(out << "for", ind);
+    start->dump(indent(out, ind) << "cond:", ind + 1);
+    end->dump(indent(out, ind) << "end:", ind + 1);
+    step->dump(indent(out, ind) << "step:", ind + 1);
+    body->dump(indent(out, ind) << "body:", ind + 1);
+    return out;
+}
+
 VarExprAST::VarExprAST(std::vector<VarNamePair> varNames,
                        std::unique_ptr<ExprAST> body)
     : varNames(std::move(varNames)), body(std::move(body)) {}
@@ -260,6 +343,9 @@ llvm::Value *VarExprAST::codegen() {
         NamedValues[name] = alloca;
     }
 
+    if (debug)
+        ksDbgInfo.emitLocation(this);
+
     llvm::Value *bodyVal = body->codegen();
     if (!bodyVal)
         return nullptr;
@@ -269,6 +355,14 @@ llvm::Value *VarExprAST::codegen() {
     }
 
     return bodyVal;
+}
+
+llvm::raw_ostream &VarExprAST::dump(llvm::raw_ostream &out, int ind) {
+    ExprAST::dump(out << "var", ind);
+    for (const auto &var : varNames)
+        var.second->dump(indent(out, ind) << var.first << ':', ind + 1);
+    body->dump(indent(out, ind) << "body:", ind + 1);
+    return out;
 }
 
 PrototypeAST::PrototypeAST(const std::string &name,
@@ -336,28 +430,53 @@ llvm::Function *FunctionAST::codegen() {
     llvm::BasicBlock *bb = llvm::BasicBlock::Create(*Context, "entry", f);
     Builder->SetInsertPoint(bb);
 
-    if (true) {
-        llvm::DIFile *unit = dbuilder->createFile(ksDbgInfo.cu->getFilename(),
-                                                  ksDbgInfo.cu->getDirectory());
+    llvm::DIFile *unit;
+    llvm::DISubprogram *sp;
+    unsigned lineNo;
+    if (debug) {
+        unit = dbuilder->createFile(ksDbgInfo.cu->getFilename(),
+                                    ksDbgInfo.cu->getDirectory());
 
         llvm::DIScope *fContext = unit;
-        unsigned lineNo = 0, scopeLine = 0;
-        llvm::DISubprogram *sp = dbuilder->createFunction(
+        lineNo = 0;
+        unsigned scopeLine = 0;
+        sp = dbuilder->createFunction(
             fContext, p.getName(), llvm::StringRef(), unit, lineNo,
             createFunctionType(f->arg_size()), scopeLine,
             llvm::DINode::FlagPrototyped, llvm::DISubprogram::SPFlagDefinition);
         f->setSubprogram(sp);
+
+        ksDbgInfo.lexicalBlocks.push_back(sp);
+        ksDbgInfo.emitLocation(nullptr);
     }
 
     NamedValues.clear();
+    unsigned argIdx = 0;
     for (auto &arg : f->args()) {
         llvm::AllocaInst *alloca = createEntryBlockAlloca(f, arg.getName());
+
+        if (debug) {
+            llvm::DILocalVariable *d = dbuilder->createParameterVariable(
+                sp, arg.getName(), ++argIdx, unit, lineNo,
+                ksDbgInfo.getDoubleTy(), true);
+            dbuilder->insertDeclare(
+                alloca, d, dbuilder->createExpression(),
+                llvm::DILocation::get(sp->getContext(), lineNo, 0, sp),
+                Builder->GetInsertBlock());
+        }
+
         Builder->CreateStore(&arg, alloca);
         NamedValues[std::string(arg.getName())] = alloca;
     }
 
+    ksDbgInfo.emitLocation(body.get());
+
     if (llvm::Value *retVal = body->codegen()) {
         Builder->CreateRet(retVal);
+
+        if (debug)
+            ksDbgInfo.lexicalBlocks.pop_back();
+
         llvm::verifyFunction(*f);
         if (jit)
             fpm->run(*f, *fam);
@@ -366,5 +485,19 @@ llvm::Function *FunctionAST::codegen() {
 
     // error reading body
     f->eraseFromParent();
+
+    if (p.isBinaryOp())
+        binopPrecedence.erase(proto->getOperatorName());
+
+    if (debug)
+        ksDbgInfo.lexicalBlocks.pop_back();
+
     return nullptr;
+}
+
+llvm::raw_ostream &FunctionAST::dump(llvm::raw_ostream &out, int ind) {
+    indent(out, ind) << "FunctionAST";
+    ind++;
+    indent(out, ind) << "Body: ";
+    return body ? body->dump(out, ind) : out << "null";
 }

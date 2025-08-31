@@ -1,5 +1,6 @@
 #pragma once
 
+#include <llvm/Support/raw_ostream.h>
 #include <map>
 #include <memory>
 #include <string>
@@ -14,20 +15,30 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
 
+#include "debug.h"
+
 extern std::unordered_map<char, int> binopPrecedence;
 
 llvm::Value *LogErrorV(const char *str);
 
 class ExprAST {
     public:
+        ExprAST(SourceLocation loc = curLoc);
         virtual ~ExprAST() = default;
         virtual llvm::Value *codegen() = 0;
+        int getLine() const;
+        int getCol() const;
+        virtual llvm::raw_ostream &dump(llvm::raw_ostream &out, int ind);
+
+    private:
+        SourceLocation loc;
 };
 
 class NumberExprAST : public ExprAST {
     public:
         NumberExprAST(double val);
         llvm::Value *codegen() override;
+        llvm::raw_ostream &dump(llvm::raw_ostream &out, int ind) override;
 
     private:
         double val;
@@ -35,8 +46,9 @@ class NumberExprAST : public ExprAST {
 
 class VariableExprAST : public ExprAST {
     public:
-        VariableExprAST(const std::string &name);
+        VariableExprAST(SourceLocation loc, const std::string &name);
         llvm::Value *codegen() override;
+        llvm::raw_ostream &dump(llvm::raw_ostream &out, int ind) override;
         const std::string getName();
 
     private:
@@ -45,9 +57,11 @@ class VariableExprAST : public ExprAST {
 
 class BinaryExprAST : public ExprAST {
     public:
-        BinaryExprAST(char op, std::unique_ptr<ExprAST> left,
+        BinaryExprAST(SourceLocation loc, char op,
+                      std::unique_ptr<ExprAST> left,
                       std::unique_ptr<ExprAST> right);
         llvm::Value *codegen() override;
+        llvm::raw_ostream &dump(llvm::raw_ostream &out, int ind) override;
 
     private:
         char op;
@@ -58,6 +72,7 @@ class UnaryExprAST : public ExprAST {
     public:
         UnaryExprAST(char op, std::unique_ptr<ExprAST> operand);
         llvm::Value *codegen() override;
+        llvm::raw_ostream &dump(llvm::raw_ostream &out, int ind) override;
 
     private:
         char op;
@@ -66,9 +81,10 @@ class UnaryExprAST : public ExprAST {
 
 class CallExprAST : public ExprAST {
     public:
-        CallExprAST(const std::string &callee,
+        CallExprAST(SourceLocation loc, const std::string &callee,
                     std::vector<std::unique_ptr<ExprAST>> args);
         llvm::Value *codegen() override;
+        llvm::raw_ostream &dump(llvm::raw_ostream &out, int ind) override;
 
     private:
         std::string callee;
@@ -77,10 +93,11 @@ class CallExprAST : public ExprAST {
 
 class IfExprAST : public ExprAST {
     public:
-        IfExprAST(std::unique_ptr<ExprAST> cond,
+        IfExprAST(SourceLocation loc, std::unique_ptr<ExprAST> cond,
                   std::unique_ptr<ExprAST> tBranch,
                   std::unique_ptr<ExprAST> fBranch);
         llvm::Value *codegen() override;
+        llvm::raw_ostream &dump(llvm::raw_ostream &out, int ind) override;
 
     private:
         std::unique_ptr<ExprAST> cond;
@@ -94,6 +111,7 @@ class ForExprAST : public ExprAST {
                    std::unique_ptr<ExprAST> end, std::unique_ptr<ExprAST> step,
                    std::unique_ptr<ExprAST> body);
         llvm::Value *codegen() override;
+        llvm::raw_ostream &dump(llvm::raw_ostream &out, int ind) override;
 
     private:
         std::string varName;
@@ -107,6 +125,7 @@ class VarExprAST : public ExprAST {
         VarExprAST(std::vector<VarNamePair> varNames,
                    std::unique_ptr<ExprAST> body);
         llvm::Value *codegen() override;
+        llvm::raw_ostream &dump(llvm::raw_ostream &out, int ind) override;
 
     private:
         std::vector<VarNamePair> varNames;
@@ -137,6 +156,7 @@ class FunctionAST {
         FunctionAST(std::unique_ptr<PrototypeAST> proto,
                     std::unique_ptr<ExprAST> body);
         llvm::Function *codegen();
+        llvm::raw_ostream &dump(llvm::raw_ostream &out, int ind);
 
     private:
         std::unique_ptr<PrototypeAST> proto;
