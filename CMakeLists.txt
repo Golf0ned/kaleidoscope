@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SOURCES
     src/compiler.cpp
     src/ast.cpp
+    src/debug.cpp
     src/lexer.cpp
     src/llvm.cpp
     src/parser.cpp

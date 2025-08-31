@@ -1,6 +1,5 @@
 #pragma once
 
-#include <llvm/ADT/StringRef.h>
 #include <map>
 #include <memory>
 #include <string>
@@ -37,18 +36,8 @@ extern std::unique_ptr<llvm::orc::KaleidoscopeJIT> jit;
 extern llvm::ExitOnError exitOnErr;
 extern std::map<std::string, std::unique_ptr<PrototypeAST>> functionProtos;
 
-extern std::unique_ptr<llvm::DIBuilder> dbuilder;
-
-extern struct DebugInfo {
-        llvm::DICompileUnit *cu;
-        llvm::DIType *dblTy;
-
-        llvm::DIType *getDoubleTy();
-} ksDbgInfo;
-
 void initializeModule();
 void initializeJIT();
-void debugSetup();
 
 llvm::Function *getFunction(std::string name);
 llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *function,
@@ -57,8 +46,6 @@ llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *function,
 llvm::DISubroutineType *createFunctionType(unsigned numArgs);
 
 void runModulePasses();
-
-void debugFinalize();
 
 void dumpIR();
 void writeToBitcode(const char *filename);

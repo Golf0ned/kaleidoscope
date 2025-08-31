@@ -1,5 +1,6 @@
 #include <cstdio>
 
+#include "debug.h"
 #include "lexer.h"
 #include "llvm.h"
 #include "parser.h"

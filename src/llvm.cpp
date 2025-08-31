@@ -1,11 +1,14 @@
-#include "llvm.h"
-#include "ast.h"
-#include "kaleidoscopeJIT.h"
+#include <cassert>
+#include <memory>
+
 #include "llvm/Bitcode/BitcodeWriter.h"
-#include "llvm/IR/DIBuilder.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Metadata.h"
 #include "llvm/IR/PassManager.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Support/CodeGen.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/TargetParser/Host.h"
@@ -14,12 +17,12 @@
 #include "llvm/Transforms/Scalar/Reassociate.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 #include "llvm/Transforms/Utils/Mem2Reg.h"
-#include <cassert>
-#include <llvm/IR/LegacyPassManager.h>
-#include <llvm/IR/Metadata.h>
-#include <llvm/MC/TargetRegistry.h>
-#include <llvm/Support/CodeGen.h>
-#include <memory>
+
+#include "kaleidoscopeJIT.h"
+
+#include "ast.h"
+#include "debug.h"
+#include "llvm.h"
 
 std::unique_ptr<llvm::LLVMContext> Context;
 std::unique_ptr<llvm::IRBuilder<>> Builder;
@@ -37,16 +40,6 @@ std::unique_ptr<llvm::PassBuilder> pb;
 std::unique_ptr<llvm::orc::KaleidoscopeJIT> jit;
 llvm::ExitOnError exitOnErr;
 std::map<std::string, std::unique_ptr<PrototypeAST>> functionProtos;
-
-std::unique_ptr<llvm::DIBuilder> dbuilder;
-
-llvm::DIType *DebugInfo::getDoubleTy() {
-    if (dblTy)
-        return dblTy;
-
-    dblTy = dbuilder->createBasicType("double", 64, llvm::dwarf::DW_ATE_float);
-    return dblTy;
-}
 
 void initializeModule() {
     Context = std::make_unique<llvm::LLVMContext>();
@@ -89,17 +82,6 @@ void initializeJIT() {
     Module->setDataLayout(jit->getDataLayout());
 }
 
-void debugSetup() {
-    dbuilder = std::make_unique<llvm::DIBuilder>(*Module);
-    ksDbgInfo.cu = dbuilder->createCompileUnit(
-        llvm::dwarf::DW_LANG_C, dbuilder->createFile("kaleidoscope.ks", "."),
-        "kaleidoscope", false, "", 0);
-}
-
-void debugFinalize() {
-    dbuilder->finalize();
-}
-
 llvm::Function *getFunction(std::string name) {
     if (auto *f = Module->getFunction(name))
         return f;
@@ -129,7 +111,8 @@ llvm::DISubroutineType *createFunctionType(unsigned numArgs) {
         eltTys.push_back(dblTy);
     }
 
-    return dbuilder->createSubroutineType(dbuilder->getOrCreateTypeArray(eltTys));
+    return dbuilder->createSubroutineType(
+        dbuilder->getOrCreateTypeArray(eltTys));
 }
 
 void runModulePasses() {
